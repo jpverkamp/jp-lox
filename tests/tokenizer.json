@@ -3,7 +3,8 @@
     "EQUAL = null\nLEFT_BRACE { null\nEQUAL_EQUAL == null\nEQUAL = null\nRIGHT_BRACE } null\nEOF  null\n"
   ],
   "tests/tokenizer/booleans.lox": [
-    "TRUE true null\nFALSE false null\nEOF  null\n"
+    "TRUE true null\nFALSE false null\nEOF  null\n",
+    "TRUE true null\nFALSE false null\nNIL nil null\nEOF  null\n"
   ],
   "tests/tokenizer/braces.lox": [
     "LEFT_BRACE { null\nLEFT_BRACE { null\nRIGHT_BRACE } null\nRIGHT_BRACE } null\nEOF  null\n"

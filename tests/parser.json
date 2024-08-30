@@ -1,4 +1,7 @@
 {
+  "tests/parser/groups.lox": [
+    "(group foo)\n\n"
+  ],
   "tests/parser/literal-boolean.lox": [
     "true\nfalse\n\n"
   ]
