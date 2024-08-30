@@ -1,19 +1,10 @@
-use std::fmt::{self, Display, Formatter};
+use convert_case::{Case, Casing};
+use derive_more::Display;
 
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq)]
 pub enum Token {
     EOF,
     CharToken(CharToken),
-}
-
-impl Display for Token {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Token::EOF => write!(f, "EOF"),
-            Token::CharToken(char_token) => write!(f, "{}", char_token),
-        }
-    }
 }
 
 impl Token {
@@ -21,27 +12,20 @@ impl Token {
         match self {
             Token::EOF => "EOF  null".to_string(),
             Token::CharToken(char_token) => {
-                let name = char_token.to_string();
-                format!("{} {} null", name, char::from_u32(*char_token as u32).unwrap_or('\u{FFFD}'))
+                let name = char_token.to_string().to_case(Case::ScreamingSnake);
+                let lexeme = char::from_u32(*char_token as u32).unwrap_or('\u{FFFD}');
+
+                format!("{name} {lexeme} null")
             },
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum CharToken {
     LeftParen = '(' as u32,
     RightParen = ')' as u32,
-}
-
-impl Display for CharToken {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            CharToken::LeftParen => write!(f, "LEFT_PAREN"),
-            CharToken::RightParen => write!(f, "RIGHT_PAREN"),
-        }
-    }
 }
 
 pub struct Tokenizer<'a> {
