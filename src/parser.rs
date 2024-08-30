@@ -11,7 +11,9 @@ pub struct Parser<'a> {
 #[derive(Debug)]
 pub enum AstNode {
     Literal(Value),
+    Symbol(String),
     Group(Vec<AstNode>),
+    Application(Box<AstNode>, Vec<AstNode>),
     Program(Vec<AstNode>),
 }
 
@@ -27,10 +29,20 @@ impl Display for AstNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AstNode::Literal(value) => write!(f, "{}", value),
+            AstNode::Symbol(name) => write!(f, "{}", name),
             AstNode::Group(nodes) => {
                 write!(f, "(group")?;
                 for node in nodes {
                     write!(f, " {}", node)?;
+                }
+                write!(f, ")")?;
+
+                Ok(())
+            },
+            AstNode::Application(func, args) => {
+                write!(f, "({}", func)?;
+                for arg in args {
+                    write!(f, " {}", arg)?;
                 }
                 write!(f, ")")?;
 
@@ -65,6 +77,18 @@ impl Parser<'_> {
             
             // Literals
             Some(Token::Literal(_, value)) => Ok(Some(AstNode::Literal(value))),
+
+            // Unary operators
+            Some(Token::CharToken(which @ CharToken::Minus))
+            | Some(Token::CharToken(which @ CharToken::Bang)) => {
+                let operand = self.parse_one()?;
+                let symbol = which.to_value().to_string();
+
+                Ok(Some(AstNode::Application(
+                    Box::new(AstNode::Symbol(symbol)), 
+                    vec![operand.unwrap()]
+                )))
+            },
 
             // Groups (...)
             Some(Token::CharToken(CharToken::LeftParen)) => {

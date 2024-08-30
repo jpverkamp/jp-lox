@@ -4,5 +4,8 @@
   ],
   "tests/parser/literal-boolean.lox": [
     "true\nfalse\n\n"
+  ],
+  "tests/parser/unary-application.lox": [
+    "(! true)\n(- 5.0)\n\n"
   ]
 }
