@@ -7,6 +7,8 @@ mod const_enum;
 mod tokenizer;
 use tokenizer::Tokenizer;
 
+mod values;
+
 /// Implementation of the lox programming language for code crafters
 #[derive(Debug, Parser)]
 #[clap(name = "jp-lox", version)]

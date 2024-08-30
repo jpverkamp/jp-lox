@@ -2,16 +2,16 @@ use convert_case::{Case, Casing};
 use derive_more::Display;
 
 use crate::const_enum;
+use crate::values::Value;
 
 #[derive(Debug, Display, Clone, PartialEq)]
 pub enum Token {
     EOF,
     CharToken(CharToken),
     Keyword(Keyword),
-    String(String),
 
     #[display("{}", _1)]
-    Number(String, f64),
+    Literal(String, Value),
 
     Identifier(String),
 }
@@ -33,16 +33,22 @@ impl Token {
 
                 format!("{name} {lexeme} null")
             },
-            Token::String(value) => {
-                format!("STRING \"{value}\" {value}")
-            },
-            Token::Number(lexeme, value) => {
-                // Integers always print with .0 for reasons
-                if value.fract() == 0.0 {
-                    format!("NUMBER {lexeme} {value}.0")
-                } else {
-                    format!("NUMBER {lexeme} {value}")
-                }
+            Token::Literal(lexeme, value) => {
+                let name = match value {
+                    Value::Nil => "NIL",
+                    Value::Bool(_) => "BOOL",
+                    Value::Number(_) => "NUMBER",
+                    Value::String(_) => "STRING",
+                };
+
+                // Integer numbers must print a .0
+                // This is dumb
+                let value = match value {
+                    Value::Number(n) if n.fract() == 0.0 => format!("{:.1}", n),
+                    _ => value.to_string(),
+                };
+
+                format!("{name} {lexeme} {value}")
             },
             Token::Identifier(name) => {
                 format!("IDENTIFIER {name} null")
@@ -196,7 +202,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             self.char_pos += 1;
             self.byte_pos += 1;
 
-            return Some(Token::String(value));
+            return Some(Token::Literal(format!("\"{value}\""), Value::String(value)));
         }
 
         // Read numbers
@@ -234,7 +240,16 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
 
             let value: f64 = lexeme.parse().unwrap();
-            return Some(Token::Number(lexeme, value));
+            return Some(Token::Literal(lexeme, Value::Number(value)));
+        }
+
+        // Read constant values
+        for (lexeme, value) in Value::CONSTANT_VALUES.iter() {
+            if self.source[self.byte_pos..].starts_with(lexeme) {
+                self.char_pos += lexeme.len();
+                self.byte_pos += lexeme.len();
+                return Some(Token::Literal(lexeme.to_string(), value.clone()));
+            }
         }
 
         // Match identifiers
@@ -265,9 +280,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
         }
 
-        // Try to match keywords first
-        // See, I knew there was a reason I was keeping around the raw bytes
-        // TODO: This seems *really* weird
+        // Match remaining keywords, this will include ones that are symbolic
         for keyword in Keyword::values() {
             let pattern = keyword.to_value();
 
@@ -279,7 +292,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
         }
 
-        // Consume the next character
+        // Finally, try to consume single characters as tokens
         let c = self.chars[self.char_pos];
         self.char_pos += 1;
         self.byte_pos += c.len_utf8();
