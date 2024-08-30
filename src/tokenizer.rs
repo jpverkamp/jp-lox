@@ -53,8 +53,16 @@ pub struct Tokenizer<'a> {
     chars: Vec<char>,
     char_pos: usize,
 
+    // The current position of the iterator in the source code
+    // These are 1 based
+    line: usize,
+    column: usize,
+
     // Flag that the iterator has already emitted EOF, so should not iterate any more
     emitted_eof: bool,
+
+    // Flag that we encountered and emitted at least one error
+    encountered_error: bool,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -62,10 +70,22 @@ impl<'a> Tokenizer<'a> {
         Self {
             source,
             byte_pos: 0,
+            
             chars: source.chars().collect(),
             char_pos: 0,
+
+            line: 1,
+            column: 1,
+
             emitted_eof: false,
+            encountered_error: false,
         }
+    }
+}
+
+impl Tokenizer<'_> {
+    pub fn encountered_error(&self) -> bool {
+        self.encountered_error
     }
 }
 
@@ -91,9 +111,21 @@ impl<'a> Iterator for Tokenizer<'a> {
 
         // Match the character to a token
         if let Ok(token) = CharToken::try_from(c) {
+            self.column += 1;
             return Some(Token::CharToken(token));
         }
-        
-        unimplemented!("Unexpected character: {:?}", c);
+
+        // Newlines don't emit a token, but they do increment the line number
+        if c == '\n' {
+            self.line += 1;
+            self.column = 1;
+            return self.next();
+        }
+
+        // Anything else should emit an error and continue as best we can
+        self.encountered_error = true;
+        eprintln!("[line {}] Error: Unexpected character: {:?}", self.line, c);
+        self.column += 1;
+        self.next()
     }
 }

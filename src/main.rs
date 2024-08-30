@@ -32,9 +32,13 @@ fn main() -> Result<()> {
         Command::Tokenize { path } => {
             let file_contents = fs::read_to_string(&path)?;
 
-            let tokenizer = Tokenizer::new(&file_contents);
-            for token in tokenizer {
+            let mut tokenizer = Tokenizer::new(&file_contents);
+            for token in &mut tokenizer {
                 println!("{}", token.code_crafters_format());
+            }
+
+            if tokenizer.encountered_error() {
+                std::process::exit(65);
             }
         },
     }
