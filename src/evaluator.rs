@@ -34,15 +34,11 @@ macro_rules! as_boolean {
     };
 }
 
-macro_rules! numeric_binop {
-    ($name:ident, $op:tt) => {
-        |args: Vec<Value> | {
-            assert_arity!(args => 2);
-
-            let a = as_number!(args[0]);
-            let b = as_number!(args[1]);
-
-            Ok(Value::Number(a $op b))
+macro_rules! as_string {
+    ($expr:expr) => {
+        match $expr {
+            Value::String(s) => s.clone(),
+            _ => return Err(anyhow!("Expected string, found {}", $expr)),
         }
     };
 }
@@ -67,6 +63,25 @@ impl Evaluate for AstNode {
                 let func = match func.evaluate()? {
                     Value::Symbol(name) => {
                         match name.as_str() {
+                            // Overloaded operator, both addition and string concatenation
+                            // TODO: This is ugly :)
+                            "+" => |args: Vec<Value>| {
+                                assert_arity!(args => 2);
+
+                                let a = args[0].clone();
+                                let b = args[1].clone();
+
+                                match (a, b) {
+                                    (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
+                                    (Value::String(a), Value::String(b)) => {
+                                        let mut result = String::new();
+                                        result.push_str(&a);
+                                        result.push_str(&b);
+                                        Ok(Value::String(result))
+                                    },
+                                    _ => return Err(anyhow!("Expected number or string, found {} and {}", args[0], args[1])),
+                                }
+                            },
                             "-" => |args: Vec<Value>| {
                                 assert_arity!(args => 1, 2);
 
@@ -79,16 +94,26 @@ impl Evaluate for AstNode {
                                     Ok(Value::Number(a - b))
                                 }
                             },
+                            "*" => |args: Vec<Value>| {
+                                assert_arity!(args => 2);
+
+                                let a = as_number!(args[0]);
+                                let b = as_number!(args[1]);
+                                Ok(Value::Number(a * b))
+                            },
+                            "/" => |args: Vec<Value>| {
+                                assert_arity!(args => 2);
+
+                                let a = as_number!(args[0]);
+                                let b = as_number!(args[1]);
+                                Ok(Value::Number(a / b))
+                            },
                             "!" => |args: Vec<Value>| {
                                 assert_arity!(args => 1);
 
                                 let v = as_boolean!(args[0]);
                                 Ok(Value::Bool(!v))
                             },
-
-                            "+" => numeric_binop!(add, +),
-                            "*" => numeric_binop!(mul, *),
-                            "/" => numeric_binop!(div, /),
 
                             _ => unimplemented!("Only built ins are implemented"),
                         }
