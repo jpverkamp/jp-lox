@@ -204,7 +204,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         // Numbers can contain a single . (cannot do 1.2.3)
         // Numbers must have a digit after the . (cannot do 1. That's two tokens)
         if self.chars[self.char_pos].is_digit(10) {
-            let mut value = String::new();
+            let mut lexeme = String::new();
             let mut has_dot = false;
             let mut last_dot = false;
 
@@ -212,10 +212,10 @@ impl<'a> Iterator for Tokenizer<'a> {
                 let c = self.chars[self.char_pos];
 
                 if c.is_digit(10) {
-                    value.push(c);
+                    lexeme.push(c);
                     last_dot = false;
                 } else if c == '.' && !has_dot {
-                    value.push(c);
+                    lexeme.push(c);
                     has_dot = true;
                     last_dot = true;
                 } else {
@@ -228,12 +228,13 @@ impl<'a> Iterator for Tokenizer<'a> {
 
             // If the last character was a dot, we need to back up
             if last_dot {
+                lexeme.pop();
                 self.char_pos -= 1;
                 self.byte_pos -= 1;
             }
 
-            let value: f64 = value.parse().unwrap();
-            return Some(Token::Number(value.to_string(), value));
+            let value: f64 = lexeme.parse().unwrap();
+            return Some(Token::Number(lexeme, value));
         }
 
         // Match identifiers

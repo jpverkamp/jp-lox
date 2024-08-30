@@ -8,6 +8,9 @@
   "tests/tokenizer/comments.lox": [
     "LEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n"
   ],
+  "tests/tokenizer/complex-case.lox": [
+    "LEFT_BRACE { null\nIDENTIFIER str1 null\nEQUAL = null\nSTRING \"Test\" Test\nIDENTIFIER str2 null\nEQUAL = null\nSTRING \"Case\" Case\nIDENTIFIER num1 null\nEQUAL = null\nNUMBER 100 100.0\nIDENTIFIER num2 null\nEQUAL = null\nNUMBER 200.00 200.0\nIDENTIFIER result null\nEQUAL = null\nLEFT_PAREN ( null\nIDENTIFIER str1 null\nEQUAL_EQUAL == null\nIDENTIFIER str2 null\nRIGHT_PAREN ) null\nBANG_EQUAL != null\nLEFT_PAREN ( null\nLEFT_PAREN ( null\nIDENTIFIER num1 null\nPLUS + null\nIDENTIFIER num2 null\nRIGHT_PAREN ) null\nGREATER_EQUAL >= null\nNUMBER 300 300.0\nRIGHT_PAREN ) null\nRIGHT_BRACE } null\nEOF  null\n"
+  ],
   "tests/tokenizer/empty-file.lox": [
     "EOF  null\n"
   ],
@@ -19,6 +22,9 @@
   ],
   "tests/tokenizer/negation-and-inequality.lox": [
     "BANG ! null\nBANG_EQUAL != null\nEQUAL_EQUAL == null\nEOF  null\n"
+  ],
+  "tests/tokenizer/numbers-preserve-lexeme.lox": [
+    "NUMBER 200.00 200.0\nEOF  null\n"
   ],
   "tests/tokenizer/numbers.lox": [
     "NUMBER 123 123.0\nNUMBER 123.456 123.456\nDOT . null\nNUMBER 456 456.0\nNUMBER 123 123.0\nDOT . null\nEOF  null\n"
