@@ -7,12 +7,21 @@ use crate::values::Value;
 #[derive(Debug, Display, Clone, PartialEq)]
 pub enum Token {
     EOF,
-    Keyword(Keyword),
 
     #[display("{}", _1)]
-    Literal(String, Value),
+    Keyword(Span, Keyword),
 
-    Identifier(String),
+    #[display("{}", _2)]
+    Literal(Span, String, Value),
+
+    #[display("{}", _1)]
+    Identifier(Span, String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Span {
+    pub start: usize,
+    pub length: usize,
 }
 
 // Code crafters requires a very specific output format, implement it here
@@ -20,13 +29,13 @@ impl Token {
     pub fn code_crafters_format(&self) -> String {
         match self {
             Token::EOF => "EOF  null".to_string(),
-            Token::Keyword(keyword) => {
+            Token::Keyword(_, keyword) => {
                 let name = keyword.to_string().to_case(Case::ScreamingSnake);
                 let lexeme = keyword.to_value();
 
                 format!("{name} {lexeme} null")
             },
-            Token::Literal(lexeme, value) => {
+            Token::Literal(_, lexeme, value) => {
                 let name = match value {
                     Value::Nil => {
                         return "NIL nil null".to_string();
@@ -40,7 +49,7 @@ impl Token {
                 };
                 format!("{name} {lexeme} {value}")
             },
-            Token::Identifier(name) => {
+            Token::Identifier(_, name) => {
                 format!("IDENTIFIER {name} null")
             },
         }
@@ -94,9 +103,7 @@ const_enum!{
 #[derive(Debug)]
 pub struct Tokenizer<'a> {
     // Internal state stored as raw bytes 
-    // TODO: Do we actually need to keep this? I thought it might be handy for error messages
-    #[allow(dead_code)]
-    source: &'a str,
+    pub(crate) source: &'a str,
     byte_pos: usize,
 
     // Internal state stored as utf8 characters, processed once
@@ -165,6 +172,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         // If we reach EOL, report an error and continue on the next line
         if self.chars[self.char_pos] == '"' {
             let mut value = String::new();
+            let start = self.char_pos;
             self.char_pos += 1;
             self.byte_pos += 1;
 
@@ -187,8 +195,15 @@ impl<'a> Iterator for Tokenizer<'a> {
             // Consume closing "
             self.char_pos += 1;
             self.byte_pos += 1;
+            let length = self.char_pos - start;
 
-            return Some(Token::Literal(format!("\"{value}\""), Value::String(value)));
+            return Some(
+                Token::Literal(
+                    Span { start, length },
+                    format!("\"{value}\""),
+                    Value::String(value)
+                )
+            );
         }
 
         // Read numbers
@@ -199,6 +214,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             let mut lexeme = String::new();
             let mut has_dot = false;
             let mut last_dot = false;
+            let start = self.char_pos;
 
             while self.char_pos < self.chars.len() {
                 let c = self.chars[self.char_pos];
@@ -226,15 +242,19 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
 
             let value: f64 = lexeme.parse().unwrap();
-            return Some(Token::Literal(lexeme, Value::Number(value)));
+            let length = self.char_pos - start;
+            
+            return Some(Token::Literal(Span { start, length },lexeme, Value::Number(value)));
         }
 
         // Read constant values
         for (lexeme, value) in Value::CONSTANT_VALUES.iter() {
             if self.source[self.byte_pos..].starts_with(lexeme) {
+                let start = self.char_pos;
                 self.char_pos += lexeme.len();
                 self.byte_pos += lexeme.len();
-                return Some(Token::Literal(lexeme.to_string(), value.clone()));
+                let length = self.char_pos - start;
+                return Some(Token::Literal(Span { start, length }, lexeme.to_string(), value.clone()));
             }
         }
 
@@ -243,6 +263,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         // Identifiers can contain letters, numbers, and _
         if self.chars[self.char_pos].is_alphabetic() || self.chars[self.char_pos] == '_' {
             let mut value = String::new();
+            let start = self.char_pos;
 
             while self.char_pos < self.chars.len() {
                 let c = self.chars[self.char_pos];
@@ -257,12 +278,14 @@ impl<'a> Iterator for Tokenizer<'a> {
                 self.byte_pos += 1;
             }
 
+            let length = self.char_pos - start;
+
             // Check if it's actually a keyword
             // This is called 'maximal munch', so superduper doesn't get parsed as <super><duper>
             if let Ok(keyword) = Keyword::try_from(value.as_str()) {
-                return Some(Token::Keyword(keyword));
+                return Some(Token::Keyword(Span { start, length }, keyword));
             } else {
-                return Some(Token::Identifier(value));
+                return Some(Token::Identifier(Span { start, length }, value));
             }
         }
 
@@ -271,10 +294,12 @@ impl<'a> Iterator for Tokenizer<'a> {
             let pattern = keyword.to_value();
 
             if self.source[self.byte_pos..].starts_with(pattern) {
+                let start = self.char_pos;
                 self.byte_pos += pattern.len();
                 self.char_pos += pattern.chars().count();
+                let length = self.char_pos - start;
 
-                return Some(Token::Keyword(keyword));
+                return Some(Token::Keyword(Span { start, length }, keyword));
             }
         }
 

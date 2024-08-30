@@ -64,7 +64,13 @@ fn main() -> Result<()> {
             let tokenizer = Tokenizer::new(&file_contents);
             let mut parser = Parser::from(tokenizer);
 
-            let ast = parser.parse()?;
+            let ast = match parser.parse() {
+                Ok(ast) => ast,
+                Err(e) => {
+                    eprintln!("{}", e);
+                    std::process::exit(65);
+                },
+            };
             
             println!("{ast}");
         },

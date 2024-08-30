@@ -5,6 +5,7 @@ use crate::{tokenizer::{Keyword, Token, Tokenizer}, values::Value};
 
 #[derive(Debug)]
 pub struct Parser<'a> {
+    source: &'a str,
     tokenizer: Peekable<Tokenizer<'a>>, 
 }
 
@@ -20,6 +21,7 @@ pub enum AstNode {
 impl<'a> From<Tokenizer<'a>> for Parser<'a> {
     fn from(value: Tokenizer<'a>) -> Self {
         Parser {
+            source: value.source,
             tokenizer: value.peekable(),
         }
     }
@@ -67,7 +69,7 @@ macro_rules! matches_keyword {
     ) => {
         match $token {
             $(
-                Some(Token::Keyword(which @ Keyword::$which)) => Some(which.to_value().to_string()),
+                Some(Token::Keyword(_, which @ Keyword::$which)) => Some(which.to_value().to_string()),
             )*
             _ => None,
         }
@@ -184,19 +186,34 @@ impl Parser<'_> {
     fn parse_primary(&mut self) -> Result<AstNode> {
         if let Some(token) = self.tokenizer.next() {
             match token {
-                Token::Literal(_, v) => Ok(AstNode::Literal(v)),
-                Token::Keyword(Keyword::LeftParen) => {
+                Token::Literal(_, _, v) => Ok(AstNode::Literal(v)),
+                Token::Keyword(span, Keyword::LeftParen) => {
                     let group = self.parse_expression()?;
-                    if let Some(Token::Keyword(Keyword::RightParen)) = self.tokenizer.next() {
+                    if let Some(Token::Keyword(_, Keyword::RightParen)) = self.tokenizer.next() {
                         Ok(AstNode::Group(vec![group]))
                     } else {
-                        Err(anyhow!("Expected ')'"))
+                        let line = self.line_number(span.start);
+                        Err(anyhow!("[line {}] Error at '{}': Expect expression", line, token)) 
                     }
                 },
-                _ => Err(anyhow!("Expected primary expression")),
+                Token::EOF => Err(anyhow!("Error at EOF: Expect expression")),
+                Token::Identifier(span, _) => {
+                    let line = self.line_number(span.start);
+                    Err(anyhow!("[line {}] Error at '{}': Expect expression", line, token)) 
+                },
+                Token::Keyword(span, keyword) => {
+                    let line = self.line_number(span.start);
+                    Err(anyhow!("[line {}] Error at '{}': Expect expression", line, keyword.to_value())) 
+                }
             }
         } else {
-            Err(anyhow!("Expected primary expression"))
+            unreachable!("EOF should be handled in parse_expression")
         }
+    }
+}
+
+impl Parser<'_> {
+    fn line_number(&self, byte_pos: usize) -> usize {
+        self.source[..byte_pos].lines().count()
     }
 }
