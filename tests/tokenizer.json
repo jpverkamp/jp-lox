@@ -11,6 +11,9 @@
   "tests/tokenizer/empty-file.lox": [
     "EOF  null\n"
   ],
+  "tests/tokenizer/identifiers.lox": [
+    "IDENTIFIER foo null\nIDENTIFIER bar null\nIDENTIFIER _hello null\nEOF  null\n"
+  ],
   "tests/tokenizer/inequality.lox": [
     "LESS < null\nLESS_EQUAL <= null\nGREATER > null\nGREATER_EQUAL >= null\nEOF  null\n"
   ],

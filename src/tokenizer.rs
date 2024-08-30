@@ -12,6 +12,8 @@ pub enum Token {
 
     #[display("{}", _1)]
     Number(String, f64),
+
+    Identifier(String),
 }
 
 // Code crafters requires a very specific output format, implement it here
@@ -42,6 +44,9 @@ impl Token {
                     format!("NUMBER {lexeme} {value}")
                 }
             },
+            Token::Identifier(name) => {
+                format!("IDENTIFIER {name} null")
+            },
         }
     }
 }
@@ -69,11 +74,28 @@ const_enum!{
 
 // Define keywords which are based on strings
 const_enum!{
-    pub Keyword as &'static str {
+    pub Keyword as &str {
         EqualEqual => "==",
         BangEqual => "!=",
         LessEqual => "<=",
         GreaterEqual => ">=",
+        
+        And => "and",
+        Class => "class",
+        Else => "else",
+        False => "false",
+        For => "for",
+        Fun => "fun",
+        If => "if",
+        Nil => "nil",
+        Or => "or",
+        Print => "print",
+        Return => "return",
+        Super => "super",
+        This => "this",
+        True => "true",
+        Var => "var",
+        While => "while",
     }
 }
 
@@ -212,6 +234,34 @@ impl<'a> Iterator for Tokenizer<'a> {
 
             let value: f64 = value.parse().unwrap();
             return Some(Token::Number(value.to_string(), value));
+        }
+
+        // Match identifiers
+        // Identifiers start with a letter or _
+        // Identifiers can contain letters, numbers, and _
+        if self.chars[self.char_pos].is_alphabetic() || self.chars[self.char_pos] == '_' {
+            let mut value = String::new();
+
+            while self.char_pos < self.chars.len() {
+                let c = self.chars[self.char_pos];
+
+                if c.is_alphanumeric() || c == '_' {
+                    value.push(c);
+                } else {
+                    break;
+                }
+
+                self.char_pos += 1;
+                self.byte_pos += 1;
+            }
+
+            // Check if it's actually a keyword
+            // This is called 'maximal munch', so superduper doesn't get parsed as <super><duper>
+            if let Ok(keyword) = Keyword::try_from(value.as_str()) {
+                return Some(Token::Keyword(keyword));
+            } else {
+                return Some(Token::Identifier(value));
+            }
         }
 
         // Try to match keywords first
