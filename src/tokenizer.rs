@@ -98,6 +98,7 @@ const_enum!{
 }
 
 // The current state of the tokenizer, use it as an iterator (in general)
+#[derive(Debug)]
 pub struct Tokenizer<'a> {
     // Internal state stored as raw bytes 
     // TODO: Do we actually need to keep this? I thought it might be handy for error messages

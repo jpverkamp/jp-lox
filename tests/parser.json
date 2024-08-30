@@ -1,0 +1,5 @@
+{
+  "tests/parser/literal-boolean.lox": [
+    "true\nfalse\n\n"
+  ]
+}
