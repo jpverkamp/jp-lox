@@ -40,14 +40,6 @@ impl Token {
                     Value::Number(_) => "NUMBER",
                     Value::String(_) => "STRING",
                 };
-
-                // Integer numbers must print a .0
-                // This is dumb
-                let value = match value {
-                    Value::Number(n) if n.fract() == 0.0 => format!("{:.1}", n),
-                    _ => value.to_string(),
-                };
-
                 format!("{name} {lexeme} {value}")
             },
             Token::Identifier(name) => {
