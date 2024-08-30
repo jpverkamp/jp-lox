@@ -1,6 +1,6 @@
 use std::{fmt::{self, Display}, iter::Peekable};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 use crate::{tokenizer::{Keyword, Token, Tokenizer}, values::Value};
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ impl Display for AstNode {
                 }
                 write!(f, ")")?;
 
-                Ok(())
+                std::fmt::Result::Ok(())
             },
             AstNode::Application(func, args) => {
                 write!(f, "({}", func)?;
@@ -46,77 +46,157 @@ impl Display for AstNode {
                 }
                 write!(f, ")")?;
 
-                Ok(())
+                std::fmt::Result::Ok(())
             },
             AstNode::Program(nodes) => {
                 for node in nodes {
                     write!(f, "{}\n", node)?;
                 }
 
-                Ok(())
+                std::fmt::Result::Ok(())
             },
+        }
+    }
+}
+
+macro_rules! matches_keyword {
+    (
+        $token:expr => 
+        $($which:ident),*
+        $(,)?
+    ) => {
+        match $token {
+            $(
+                Some(Token::Keyword(which @ Keyword::$which)) => Some(which.to_value().to_string()),
+            )*
+            _ => None,
         }
     }
 }
 
 impl Parser<'_> {
     pub fn parse(&mut self) -> Result<AstNode> {
-        log::debug!("parse()");
-
-        let nodes = self.parse_until(Token::EOF)?;
-        Ok(AstNode::Program(nodes))
-    }
-
-    fn parse_one(&mut self) -> Result<Option<AstNode>> {
-        let token = self.tokenizer.next();
-        log::debug!("parse_one(), token = {token:?}");
-        
-        match token {
-            // Done parsing, nothing to return
-            None | Some(Token::EOF) => Ok(None),
-            
-            // Literals
-            Some(Token::Literal(_, value)) => Ok(Some(AstNode::Literal(value))),
-
-            // Unary operators
-            Some(Token::Keyword(which @ Keyword::Minus))
-            | Some(Token::Keyword(which @ Keyword::Bang)) => {
-                let operand = self.parse_one()?;
-                let symbol = which.to_value().to_string();
-
-                Ok(Some(AstNode::Application(
-                    Box::new(AstNode::Symbol(symbol)), 
-                    vec![operand.unwrap()]
-                )))
-            },
-
-            // Groups (...)
-            Some(Token::Keyword(Keyword::LeftParen)) => {
-                let group = self.parse_until(Token::Keyword(Keyword::RightParen))?;
-                Ok(Some(AstNode::Group(group)))
-            },
-            
-            t => Err(anyhow!("Haven't parsed {t:?} yet")),
-        }
-    }
-
-    fn parse_until(&mut self, target: Token) -> Result<Vec<AstNode>> {
-        log::debug!("parse_until({target:?})");
         let mut nodes = vec![];
 
         while let Some(token) = self.tokenizer.peek() {
-            log::debug!("parse_until({target:?}), node = {token:?}");
-
-            if token == &target {
-                self.tokenizer.next(); // Consume target
-                return Ok(nodes);
-            } else if let Some(node) = self.parse_one()? {
-                nodes.push(node);
-            } else {
-                return Err(anyhow!("Unexpected end of tokens; expected {target:?}"));
+            if token == &Token::EOF {
+                break;
             }
+
+            nodes.push(self.parse_expression()?);
         }
 
-        Err(anyhow!("Unexpected end of tokens; expected {target:?}"))
+        Ok(AstNode::Program(nodes))
+    }
+
+    fn parse_expression(&mut self) -> Result<AstNode> {
+        self.parse_equality()
+    }
+
+    fn parse_equality(&mut self) -> Result<AstNode> {
+        let mut lhs = self.parse_comparison()?;
+
+        while let Some(op) = matches_keyword!(
+            self.tokenizer.peek() => BangEqual, EqualEqual,
+        ) {
+            self.tokenizer.next();
+            let rhs = self.parse_comparison()?;
+
+            lhs = AstNode::Application(
+                Box::new(AstNode::Symbol(op)),
+                vec![lhs, rhs],
+            );
+        }
+
+        Ok(lhs)
+    }
+
+    fn parse_comparison(&mut self) -> Result<AstNode> {
+        let mut lhs = self.parse_term()?;
+
+        while let Some(op) = matches_keyword!(
+            self.tokenizer.peek() => Greater, GreaterEqual, Less, LessEqual,
+        ) {
+            self.tokenizer.next();
+            let rhs = self.parse_term()?;
+
+            lhs = AstNode::Application(
+                Box::new(AstNode::Symbol(op)),
+                vec![lhs, rhs],
+            );
+        }
+
+        Ok(lhs)
+    }
+
+    fn parse_term(&mut self) -> Result<AstNode> {
+        let mut lhs = self.parse_factor()?;
+
+        while let Some(op) = matches_keyword!(
+            self.tokenizer.peek() => Minus, Plus,
+        ) {
+            self.tokenizer.next();
+            let rhs = self.parse_factor()?;
+
+            lhs = AstNode::Application(
+                Box::new(AstNode::Symbol(op)),
+                vec![lhs, rhs],
+            );
+        }
+
+        Ok(lhs)
+    }
+
+    fn parse_factor(&mut self) -> Result<AstNode> {
+        let mut lhs = self.parse_unary()?;
+
+        while let Some(op) = matches_keyword!(
+            self.tokenizer.peek() => Slash, Star,
+        ) {
+            self.tokenizer.next();
+            let rhs = self.parse_unary()?;
+
+            lhs = AstNode::Application(
+                Box::new(AstNode::Symbol(op)),
+                vec![lhs, rhs],
+            );
+        }
+
+        Ok(lhs)
+    }
+
+    fn parse_unary(&mut self) -> Result<AstNode> {
+        if let Some(op) = matches_keyword!(
+            self.tokenizer.peek() => Bang, Minus,
+        ) {
+            self.tokenizer.next();
+            let rhs = self.parse_unary()?;
+
+            Ok(AstNode::Application(
+                Box::new(AstNode::Symbol(op)),
+                vec![rhs],
+            ))
+        } else {
+            self.parse_primary()
+        }
+    }
+
+    fn parse_primary(&mut self) -> Result<AstNode> {
+        if let Some(token) = self.tokenizer.next() {
+            match token {
+                Token::Literal(_, v) => Ok(AstNode::Literal(v)),
+                Token::Keyword(Keyword::LeftParen) => {
+                    let group = self.parse_expression()?;
+                    if let Some(Token::Keyword(Keyword::RightParen)) = self.tokenizer.next() {
+                        Ok(AstNode::Group(vec![group]))
+                    } else {
+                        Err(anyhow!("Expected ')'"))
+                    }
+                },
+                _ => Err(anyhow!("Expected primary expression")),
+            }
+        } else {
+            Err(anyhow!("Expected primary expression"))
+        }
     }
 }
