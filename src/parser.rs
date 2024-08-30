@@ -1,12 +1,11 @@
-use std::{fmt::{self, Display}, iter::Peekable};
+use std::fmt::{self, Display};
 
 use anyhow::{anyhow, Ok, Result};
 use crate::{tokenizer::{Keyword, Token, Tokenizer}, values::Value};
 
 #[derive(Debug)]
 pub struct Parser<'a> {
-    source: &'a str,
-    tokenizer: Peekable<Tokenizer<'a>>, 
+    tokenizer: Tokenizer<'a>, 
 }
 
 #[derive(Debug)]
@@ -21,8 +20,7 @@ pub enum AstNode {
 impl<'a> From<Tokenizer<'a>> for Parser<'a> {
     fn from(value: Tokenizer<'a>) -> Self {
         Parser {
-            source: value.source,
-            tokenizer: value.peekable(),
+            tokenizer: value,
         }
     }
 }
@@ -214,6 +212,10 @@ impl Parser<'_> {
 
 impl Parser<'_> {
     fn line_number(&self, byte_pos: usize) -> usize {
-        self.source[..byte_pos].lines().count()
+        self.tokenizer.source[..byte_pos].lines().count()
+    }
+
+    pub fn encountered_tokenizer_error(&self) -> bool {
+        self.tokenizer.encountered_error()
     }
 }

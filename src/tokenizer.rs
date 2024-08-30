@@ -118,6 +118,9 @@ pub struct Tokenizer<'a> {
 
     // Flag that we encountered and emitted at least one error
     encountered_error: bool,
+
+    // The currently peeked token
+    peeked: Option<Token>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -133,6 +136,8 @@ impl<'a> Tokenizer<'a> {
 
             emitted_eof: false,
             encountered_error: false,
+
+            peeked: None,
         }
     }
 }
@@ -140,6 +145,14 @@ impl<'a> Tokenizer<'a> {
 impl Tokenizer<'_> {
     pub fn encountered_error(&self) -> bool {
         self.encountered_error
+    }
+
+    pub fn peek(&mut self) -> Option<&Token> {
+        if self.peeked.is_none() {
+            self.peeked = self.next();
+        }
+
+        self.peeked.as_ref()
     }
 }
 
@@ -150,6 +163,12 @@ impl<'a> Iterator for Tokenizer<'a> {
         // We've already consumed the iterator
         if self.emitted_eof {
             return None;
+        }
+
+        // If we have a peeked token, clear and return it
+        if let Some(token) = self.peeked.take() {
+            self.peeked = None;
+            return Some(token);
         }
 
         // We've reached the end of the source

@@ -62,13 +62,8 @@ fn main() -> Result<()> {
         Command::Parse { input } => {
             let file_contents = input.contents()?;
             let tokenizer = Tokenizer::new(&file_contents);
-
-            if tokenizer.encountered_error() {
-                std::process::exit(65);
-            }
-            
             let mut parser = Parser::from(tokenizer);
-            
+
             let ast = match parser.parse() {
                 Ok(ast) => ast,
                 Err(e) => {
@@ -76,6 +71,10 @@ fn main() -> Result<()> {
                     std::process::exit(65);
                 },
             };
+
+            if parser.encountered_tokenizer_error() {
+                std::process::exit(65);
+            }
             
             println!("{ast}");
         },
