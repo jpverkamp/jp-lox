@@ -148,7 +148,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             loop {
                 if self.char_pos >= self.chars.len() || self.chars[self.char_pos] == '\n' {
                     self.encountered_error = true;
-                    eprintln!("[line {}] Error: Unterminated string", self.line);
+                    eprintln!("[line {}] Error: Unterminated string.", self.line);
                     return self.next();
                 }
 
