@@ -1,4 +1,7 @@
 {
+  "tests/evaluator/binary-expressions.lox": [
+    "3\n"
+  ],
   "tests/evaluator/binary-minus-with-negation.lox": [
     "7\n"
   ],
@@ -19,6 +22,9 @@
   ],
   "tests/evaluator/unary-minus.lox": [
     "-5\n"
+  ],
+  "tests/evaluator/unary-not-falsy.lox": [
+    "true\n"
   ],
   "tests/evaluator/unary-not.lox": [
     "false\n"

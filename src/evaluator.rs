@@ -34,6 +34,19 @@ macro_rules! as_boolean {
     };
 }
 
+macro_rules! numeric_binop {
+    ($name:ident, $op:tt) => {
+        |args: Vec<Value> | {
+            assert_arity!(args => 2);
+
+            let a = as_number!(args[0]);
+            let b = as_number!(args[1]);
+
+            Ok(Value::Number(a $op b))
+        }
+    };
+}
+
 impl Evaluate for AstNode {
     fn evaluate(&self) -> Result<Value> {
         match self {
@@ -72,6 +85,10 @@ impl Evaluate for AstNode {
                                 let v = as_boolean!(args[0]);
                                 Ok(Value::Bool(!v))
                             },
+
+                            "+" => numeric_binop!(add, +),
+                            "*" => numeric_binop!(mul, *),
+                            "/" => numeric_binop!(div, /),
 
                             _ => unimplemented!("Only built ins are implemented"),
                         }
