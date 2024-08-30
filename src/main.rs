@@ -6,6 +6,7 @@ use env_logger;
 mod const_enum;
 mod evaluator;
 mod parser;
+mod span;
 mod tokenizer;
 mod values;
 
@@ -30,17 +31,17 @@ pub struct Args {
 enum Command {
     /// Tokenize the input file.
     Tokenize {
-        /// Input lox file or - for stdin. 
+        /// Input lox file or - for stdin.
         input: FileOrStdin,
     },
     /// Tokenize and parse the input file.
     Parse {
-        /// Input lox file or - for stdin. 
+        /// Input lox file or - for stdin.
         input: FileOrStdin,
     },
     /// Tokenize, parse, and evaluate the input file.
     Evaluate {
-        /// Input lox file or - for stdin. 
+        /// Input lox file or - for stdin.
         input: FileOrStdin,
     },
 }
@@ -48,7 +49,9 @@ enum Command {
 fn main() -> Result<()> {
     let args = Args::parse();
     if args.debug {
-        env_logger::Builder::new().filter_level(log::LevelFilter::Debug).init();
+        env_logger::Builder::new()
+            .filter_level(log::LevelFilter::Debug)
+            .init();
     } else {
         env_logger::init();
     }
@@ -65,7 +68,7 @@ fn main() -> Result<()> {
             if tokenizer.encountered_error() {
                 std::process::exit(65);
             }
-        },
+        }
         Command::Parse { input } => {
             let file_contents = input.contents()?;
             let tokenizer = Tokenizer::new(&file_contents);
@@ -76,15 +79,15 @@ fn main() -> Result<()> {
                 Err(e) => {
                     eprintln!("{}", e);
                     std::process::exit(65);
-                },
+                }
             };
 
             if parser.encountered_tokenizer_error() {
                 std::process::exit(65);
             }
-            
+
             println!("{ast}");
-        },
+        }
         Command::Evaluate { input } => {
             let file_contents = input.contents()?;
             let tokenizer = Tokenizer::new(&file_contents);
@@ -95,8 +98,10 @@ fn main() -> Result<()> {
                 Err(e) => {
                     eprintln!("{}", e);
                     std::process::exit(65);
-                },
+                }
             };
+
+            dbg!(&ast);
 
             if parser.encountered_tokenizer_error() {
                 std::process::exit(65);
@@ -107,7 +112,7 @@ fn main() -> Result<()> {
                 Err(e) => {
                     eprintln!("{}", e);
                     std::process::exit(65);
-                },
+                }
             };
 
             // And now, for reasons... we *don't* want 10.0, we want 10
@@ -115,7 +120,7 @@ fn main() -> Result<()> {
                 values::Value::Number(n) => println!("{}", n),
                 _ => println!("{output}"),
             }
-        },
+        }
     }
 
     Ok(())

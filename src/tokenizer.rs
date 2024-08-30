@@ -2,6 +2,7 @@ use convert_case::{Case, Casing};
 use derive_more::Display;
 
 use crate::const_enum;
+use crate::span::Span;
 use crate::values::Value;
 
 #[derive(Debug, Display, Clone, PartialEq)]
@@ -18,12 +19,6 @@ pub enum Token {
     Identifier(Span, String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Span {
-    pub start: usize,
-    pub length: usize,
-}
-
 // Code crafters requires a very specific output format, implement it here
 impl Token {
     pub fn code_crafters_format(&self) -> String {
@@ -34,37 +29,50 @@ impl Token {
                 let lexeme = keyword.to_value();
 
                 format!("{name} {lexeme} null")
-            },
+            }
             Token::Literal(_, lexeme, value) => {
                 let name = match value {
                     Value::Nil => {
                         return "NIL nil null".to_string();
-                    },
+                    }
                     Value::Bool(_) => {
                         let name = value.to_string().to_case(Case::ScreamingSnake);
                         return format!("{name} {value} null");
-                    },
+                    }
                     Value::Number(_) => "NUMBER",
                     Value::String(_) => "STRING",
                     Value::Symbol(_) => "SYMBOL",
                 };
                 format!("{name} {lexeme} {value}")
-            },
+            }
             Token::Identifier(_, name) => {
                 format!("IDENTIFIER {name} null")
-            },
+            }
+        }
+    }
+}
+
+impl Token {
+    #[allow(dead_code)]
+    pub fn span(&self) -> &Span {
+        match self {
+            Token::EOF => &Span { start: 0, end: 0 },
+
+            Token::Keyword(span, _) | Token::Literal(span, _, _) | Token::Identifier(span, _) => {
+                span
+            }
         }
     }
 }
 
 // Define keywords which are based on strings
-const_enum!{
+const_enum! {
     pub Keyword as &str {
         EqualEqual => "==",
         BangEqual => "!=",
         LessEqual => "<=",
         GreaterEqual => ">=",
-        
+
         And => "and",
         Class => "class",
         Else => "else",
@@ -103,7 +111,7 @@ const_enum!{
 // The current state of the tokenizer, use it as an iterator (in general)
 #[derive(Debug)]
 pub struct Tokenizer<'a> {
-    // Internal state stored as raw bytes 
+    // Internal state stored as raw bytes
     pub(crate) source: &'a str,
     byte_pos: usize,
 
@@ -129,7 +137,7 @@ impl<'a> Tokenizer<'a> {
         Self {
             source,
             byte_pos: 0,
-            
+
             chars: source.chars().collect(),
             char_pos: 0,
 
@@ -177,7 +185,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             self.emitted_eof = true;
             return Some(Token::EOF);
         }
-        
+
         // Try to match comments, from // to EOL
         if self.source[self.byte_pos..].starts_with("//") {
             while self.char_pos < self.chars.len() && self.chars[self.char_pos] != '\n' {
@@ -215,15 +223,13 @@ impl<'a> Iterator for Tokenizer<'a> {
             // Consume closing "
             self.char_pos += 1;
             self.byte_pos += 1;
-            let length = self.char_pos - start;
+            let end = self.char_pos;
 
-            return Some(
-                Token::Literal(
-                    Span { start, length },
-                    format!("\"{value}\""),
-                    Value::String(value)
-                )
-            );
+            return Some(Token::Literal(
+                Span { start, end },
+                format!("\"{value}\""),
+                Value::String(value),
+            ));
         }
 
         // Read numbers
@@ -262,9 +268,13 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
 
             let value: f64 = lexeme.parse().unwrap();
-            let length = self.char_pos - start;
-            
-            return Some(Token::Literal(Span { start, length },lexeme, Value::Number(value)));
+            let end = self.char_pos;
+
+            return Some(Token::Literal(
+                Span { start, end },
+                lexeme,
+                Value::Number(value),
+            ));
         }
 
         // Read constant values
@@ -273,8 +283,12 @@ impl<'a> Iterator for Tokenizer<'a> {
                 let start = self.char_pos;
                 self.char_pos += lexeme.len();
                 self.byte_pos += lexeme.len();
-                let length = self.char_pos - start;
-                return Some(Token::Literal(Span { start, length }, lexeme.to_string(), value.clone()));
+                let end = self.char_pos;
+                return Some(Token::Literal(
+                    Span { start, end },
+                    lexeme.to_string(),
+                    value.clone(),
+                ));
             }
         }
 
@@ -298,14 +312,14 @@ impl<'a> Iterator for Tokenizer<'a> {
                 self.byte_pos += 1;
             }
 
-            let length = self.char_pos - start;
+            let end = self.char_pos;
 
             // Check if it's actually a keyword
             // This is called 'maximal munch', so superduper doesn't get parsed as <super><duper>
             if let Ok(keyword) = Keyword::try_from(value.as_str()) {
-                return Some(Token::Keyword(Span { start, length }, keyword));
+                return Some(Token::Keyword(Span { start, end }, keyword));
             } else {
-                return Some(Token::Identifier(Span { start, length }, value));
+                return Some(Token::Identifier(Span { start, end }, value));
             }
         }
 
@@ -317,9 +331,9 @@ impl<'a> Iterator for Tokenizer<'a> {
                 let start = self.char_pos;
                 self.byte_pos += pattern.len();
                 self.char_pos += pattern.chars().count();
-                let length = self.char_pos - start;
+                let end = self.char_pos;
 
-                return Some(Token::Keyword(Span { start, length }, keyword));
+                return Some(Token::Keyword(Span { start, end }, keyword));
             }
         }
 

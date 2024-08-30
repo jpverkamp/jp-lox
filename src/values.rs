@@ -30,7 +30,7 @@ impl Display for Value {
                 } else {
                     write!(f, "{}", n)
                 }
-            },
+            }
             Value::String(s) => write!(f, "{}", s),
             Value::Symbol(s) => write!(f, "{}", s),
         }

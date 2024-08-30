@@ -61,20 +61,19 @@ macro_rules! comparison_binop {
 impl Evaluate for AstNode {
     fn evaluate(&self) -> Result<Value> {
         match self {
-            AstNode::Literal(value) => Ok(value.clone()),
-            AstNode::Symbol(name) => Ok(Value::Symbol(name.clone())),
-            
-            AstNode::Program(nodes) 
-            | AstNode::Group(nodes) => {
+            AstNode::Literal(_, value) => Ok(value.clone()),
+            AstNode::Symbol(_, name) => Ok(Value::Symbol(name.clone())),
+
+            AstNode::Program(_, nodes) | AstNode::Group(_, nodes) => {
                 let mut last = Value::Nil;
                 for node in nodes {
                     last = node.evaluate()?;
                 }
 
                 Ok(last)
-            },
+            }
 
-            AstNode::Application(func, args) => {
+            AstNode::Application(_, func, args) => {
                 let func = match func.evaluate()? {
                     Value::Symbol(name) => {
                         match name.as_str() {
@@ -87,14 +86,22 @@ impl Evaluate for AstNode {
                                 let b = args[1].clone();
 
                                 match (a, b) {
-                                    (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
+                                    (Value::Number(a), Value::Number(b)) => {
+                                        Ok(Value::Number(a + b))
+                                    }
                                     (Value::String(a), Value::String(b)) => {
                                         let mut result = String::new();
                                         result.push_str(&a);
                                         result.push_str(&b);
                                         Ok(Value::String(result))
-                                    },
-                                    _ => return Err(anyhow!("Expected number or string, found {} and {}", args[0], args[1])),
+                                    }
+                                    _ => {
+                                        return Err(anyhow!(
+                                            "Expected number or string, found {} and {}",
+                                            args[0],
+                                            args[1]
+                                        ))
+                                    }
                                 }
                             },
                             "-" => |args: Vec<Value>| {
@@ -149,7 +156,7 @@ impl Evaluate for AstNode {
 
                 let result = func(arg_values)?;
                 Ok(result)
-            },
+            }
         }
     }
 }
