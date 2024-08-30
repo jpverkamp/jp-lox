@@ -36,7 +36,7 @@ impl Token {
             Token::Literal(lexeme, value) => {
                 let name = match value {
                     Value::Nil => "NIL",
-                    Value::Bool(_) => "BOOL",
+                    Value::Bool(value) => if *value { "TRUE" } else { "FALSE" },
                     Value::Number(_) => "NUMBER",
                     Value::String(_) => "STRING",
                 };
