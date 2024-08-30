@@ -3,6 +3,8 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+mod char_enum;
+
 mod tokenizer;
 use tokenizer::Tokenizer;
 
@@ -32,7 +34,7 @@ fn main() -> Result<()> {
 
             let tokenizer = Tokenizer::new(&file_contents);
             for token in tokenizer {
-                println!("{}", token.lox_format());
+                println!("{}", token.code_crafters_format());
             }
         },
     }
