@@ -4,10 +4,12 @@ use clap_stdin::FileOrStdin;
 use env_logger;
 
 mod const_enum;
+mod evaluator;
 mod parser;
 mod tokenizer;
 mod values;
 
+use evaluator::Evaluate;
 use parser::Parser;
 use tokenizer::Tokenizer;
 
@@ -31,8 +33,13 @@ enum Command {
         /// Input lox file or - for stdin. 
         input: FileOrStdin,
     },
-    /// Parse the input file.
+    /// Tokenize and parse the input file.
     Parse {
+        /// Input lox file or - for stdin. 
+        input: FileOrStdin,
+    },
+    /// Tokenize, parse, and evaluate the input file.
+    Evaluate {
         /// Input lox file or - for stdin. 
         input: FileOrStdin,
     },
@@ -77,6 +84,33 @@ fn main() -> Result<()> {
             }
             
             println!("{ast}");
+        },
+        Command::Evaluate { input } => {
+            let file_contents = input.contents()?;
+            let tokenizer = Tokenizer::new(&file_contents);
+            let mut parser = Parser::from(tokenizer);
+
+            let ast = match parser.parse() {
+                Ok(ast) => ast,
+                Err(e) => {
+                    eprintln!("{}", e);
+                    std::process::exit(65);
+                },
+            };
+
+            if parser.encountered_tokenizer_error() {
+                std::process::exit(65);
+            }
+
+            let output = match ast.evaluate() {
+                Ok(value) => value,
+                Err(e) => {
+                    eprintln!("{}", e);
+                    std::process::exit(65);
+                },
+            };
+
+            println!("{output}");
         },
     }
 
