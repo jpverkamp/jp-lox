@@ -1,6 +1,6 @@
 #[macro_export]
-macro_rules! char_enum {
-    ($vis:vis $name:ident {
+macro_rules! const_enum {
+    ($vis:vis $name:ident as $type:ty {
         $($value:ident => $char:expr),+
         $(,)?
     }) => {
@@ -10,19 +10,24 @@ macro_rules! char_enum {
         }
 
         impl $name {
-            pub fn to_char(&self) -> char {
+            pub fn to_value(&self) -> $type {
                 match *self {
                     $(
                         $name::$value => $char,
                     )+
                 }
             }
+
+            #[allow(dead_code)]
+            pub fn values() -> Vec<$name> {
+                vec![$($name::$value),+]
+            }
         }
 
-        impl TryFrom<char> for $name {
+        impl TryFrom<$type> for $name {
             type Error = ();
 
-            fn try_from(value: char) -> Result<Self, Self::Error> {
+            fn try_from(value: $type) -> Result<Self, Self::Error> {
                 match value {
                     $(
                         $char => Ok($name::$value),

@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
-mod char_enum;
+mod const_enum;
 
 mod tokenizer;
 use tokenizer::Tokenizer;

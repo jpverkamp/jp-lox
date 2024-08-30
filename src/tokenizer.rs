@@ -1,12 +1,13 @@
 use convert_case::{Case, Casing};
 use derive_more::Display;
 
-use crate::char_enum;
+use crate::const_enum;
 
-#[derive(Debug, Display, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum Token {
     EOF,
     CharToken(CharToken),
+    Keyword(Keyword),
 }
 
 // Code crafters requires a very specific output format, implement it here
@@ -16,7 +17,13 @@ impl Token {
             Token::EOF => "EOF  null".to_string(),
             Token::CharToken(char_token) => {
                 let name = char_token.to_string().to_case(Case::ScreamingSnake);
-                let lexeme = char_token.to_char();
+                let lexeme = char_token.to_value();
+
+                format!("{name} {lexeme} null")
+            },
+            Token::Keyword(keyword) => {
+                let name = keyword.to_string().to_case(Case::ScreamingSnake);
+                let lexeme = keyword.to_value();
 
                 format!("{name} {lexeme} null")
             },
@@ -24,9 +31,9 @@ impl Token {
     }
 }
 
-// Use a marco (in char_enum.rs) to define an enum with to/from char values
-char_enum!{
-    pub CharToken {
+// Use a marco (in const_enum.rs) to define an enum with to/from char values
+const_enum!{
+    pub CharToken as char {
         LeftParen => '(',
         RightParen => ')',
         LeftBrace => '{',
@@ -38,6 +45,14 @@ char_enum!{
         Minus => '-',
         Star => '*',
         Slash => '/',
+        Equal => '=',
+    }
+}
+
+// Define keywords which are based on strings
+const_enum!{
+    pub Keyword as &'static str {
+        EqualEqual => "==",
     }
 }
 
@@ -102,6 +117,21 @@ impl<'a> Iterator for Tokenizer<'a> {
         if self.char_pos >= self.chars.len() {
             self.emitted_eof = true;
             return Some(Token::EOF);
+        }
+
+        // Try to match keywords first
+        // See, I knew there was a reason I was keeping around the raw bytes
+        // TODO: This seems *really* weird
+        for keyword in Keyword::values() {
+            let pattern = keyword.to_value();
+
+            if self.source[self.byte_pos..].starts_with(pattern) {
+                self.byte_pos += pattern.len();
+                self.char_pos += pattern.chars().count();
+                self.column += pattern.chars().count();
+
+                return Some(Token::Keyword(keyword));
+            }
         }
 
         // Consume the next character
