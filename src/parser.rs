@@ -1,7 +1,7 @@
 use std::{fmt::{self, Display}, iter::Peekable};
 
 use anyhow::{anyhow, Result};
-use crate::{tokenizer::{CharToken, Token, Tokenizer}, values::Value};
+use crate::{tokenizer::{Keyword, Token, Tokenizer}, values::Value};
 
 #[derive(Debug)]
 pub struct Parser<'a> {
@@ -79,8 +79,8 @@ impl Parser<'_> {
             Some(Token::Literal(_, value)) => Ok(Some(AstNode::Literal(value))),
 
             // Unary operators
-            Some(Token::CharToken(which @ CharToken::Minus))
-            | Some(Token::CharToken(which @ CharToken::Bang)) => {
+            Some(Token::Keyword(which @ Keyword::Minus))
+            | Some(Token::Keyword(which @ Keyword::Bang)) => {
                 let operand = self.parse_one()?;
                 let symbol = which.to_value().to_string();
 
@@ -91,8 +91,8 @@ impl Parser<'_> {
             },
 
             // Groups (...)
-            Some(Token::CharToken(CharToken::LeftParen)) => {
-                let group = self.parse_until(Token::CharToken(CharToken::RightParen))?;
+            Some(Token::Keyword(Keyword::LeftParen)) => {
+                let group = self.parse_until(Token::Keyword(Keyword::RightParen))?;
                 Ok(Some(AstNode::Group(group)))
             },
             

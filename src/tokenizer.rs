@@ -7,7 +7,6 @@ use crate::values::Value;
 #[derive(Debug, Display, Clone, PartialEq)]
 pub enum Token {
     EOF,
-    CharToken(CharToken),
     Keyword(Keyword),
 
     #[display("{}", _1)]
@@ -21,12 +20,6 @@ impl Token {
     pub fn code_crafters_format(&self) -> String {
         match self {
             Token::EOF => "EOF  null".to_string(),
-            Token::CharToken(char_token) => {
-                let name = char_token.to_string().to_case(Case::ScreamingSnake);
-                let lexeme = char_token.to_value();
-
-                format!("{name} {lexeme} null")
-            },
             Token::Keyword(keyword) => {
                 let name = keyword.to_string().to_case(Case::ScreamingSnake);
                 let lexeme = keyword.to_value();
@@ -54,27 +47,6 @@ impl Token {
     }
 }
 
-// Use a marco (in const_enum.rs) to define an enum with to/from char values
-const_enum!{
-    pub CharToken as char {
-        LeftParen => '(',
-        RightParen => ')',
-        LeftBrace => '{',
-        RightBrace => '}',
-        Comma => ',',
-        Dot => '.',
-        Semicolon => ';',
-        Plus => '+',
-        Minus => '-',
-        Star => '*',
-        Slash => '/',
-        Equal => '=',
-        Bang => '!',
-        Less => '<',
-        Greater => '>',
-    }
-}
-
 // Define keywords which are based on strings
 const_enum!{
     pub Keyword as &str {
@@ -99,6 +71,22 @@ const_enum!{
         True => "true",
         Var => "var",
         While => "while",
+
+        LeftParen => "(",
+        RightParen => ")",
+        LeftBrace => "{",
+        RightBrace => "}",
+        Comma => ",",
+        Dot => ".",
+        Semicolon => ";",
+        Plus => "+",
+        Minus => "-",
+        Star => "*",
+        Slash => "/",
+        Equal => "=",
+        Bang => "!",
+        Less => "<",
+        Greater => ">",
     }
 }
 
@@ -290,15 +278,11 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
         }
 
-        // Finally, try to consume single characters as tokens
+        // The only things that should be left are whitespace
+        // Anything else is an error
         let c = self.chars[self.char_pos];
         self.char_pos += 1;
         self.byte_pos += c.len_utf8();
-
-        // Match the character to a token
-        if let Ok(token) = CharToken::try_from(c) {
-            return Some(Token::CharToken(token));
-        }
 
         // Newlines don't emit a token, but '\n' does increment the line number
         if c.is_whitespace() {
