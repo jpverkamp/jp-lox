@@ -22,5 +22,8 @@
   ],
   "tests/tokenizer/parentheses.lox": [
     "LEFT_PAREN ( null\nLEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n"
+  ],
+  "tests/tokenizer/strings.lox": [
+    "STRING \"foo baz\" foo baz\nEOF  null\n"
   ]
 }

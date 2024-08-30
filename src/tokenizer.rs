@@ -8,6 +8,7 @@ pub enum Token {
     EOF,
     CharToken(CharToken),
     Keyword(Keyword),
+    String(String),
 }
 
 // Code crafters requires a very specific output format, implement it here
@@ -26,6 +27,11 @@ impl Token {
                 let lexeme = keyword.to_value();
 
                 format!("{name} {lexeme} null")
+            },
+            Token::String(value) => {
+                let name = "STRING";
+
+                format!("{name} {value:?} {value}")
             },
         }
     }
@@ -130,6 +136,36 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
 
             return self.next();
+        }
+
+        // Read strings, currently there is no escaping, so read until a matching " or EOL
+        // If we reach EOL, report an error and continue on the next line
+        if self.chars[self.char_pos] == '"' {
+            let mut value = String::new();
+            self.char_pos += 1;
+            self.byte_pos += 1;
+
+            loop {
+                if self.char_pos >= self.chars.len() || self.chars[self.char_pos] == '\n' {
+                    self.encountered_error = true;
+                    eprintln!("[line {}] Error: Unterminated string", self.line);
+                    return self.next();
+                }
+
+                if self.chars[self.char_pos] == '"' {
+                    break;
+                }
+
+                value.push(self.chars[self.char_pos]);
+                self.char_pos += 1;
+                self.byte_pos += 1;
+            }
+
+            // Consume closing "
+            self.char_pos += 1;
+            self.byte_pos += 1;
+
+            return Some(Token::String(value));
         }
 
         // Try to match keywords first
