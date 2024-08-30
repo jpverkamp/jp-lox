@@ -111,18 +111,31 @@ impl Evaluate for AstNode {
                             },
                             "*" => numeric_binop!(*),
                             "/" => numeric_binop!(/),
+
                             "!" => |args: Vec<Value>| {
                                 assert_arity!(args => 1);
 
                                 let v = as_boolean!(args[0]);
                                 Ok(Value::Bool(!v))
                             },
+
                             "<" => comparison_binop!(<),
                             "<=" => comparison_binop!(<=),
-                            "==" => comparison_binop!(==),
-                            "!=" => comparison_binop!(!=),
                             ">=" => comparison_binop!(>=),
                             ">" => comparison_binop!(>),
+
+                            // Equality can apply to any types as long as they're the same
+                            "==" => |args: Vec<Value>| {
+                                assert_arity!(args => 2);
+
+                                Ok(Value::Bool(args[0] == args[1]))
+                            },
+                            "!=" => |args: Vec<Value>| {
+                                assert_arity!(args => 2);
+
+                                Ok(Value::Bool(args[0] != args[1]))
+                            },
+
                             _ => unimplemented!("Only built ins are implemented"),
                         }
                     }

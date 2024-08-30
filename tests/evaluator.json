@@ -26,6 +26,9 @@
   "tests/evaluator/literal-string.lox": [
     "hello world!\n"
   ],
+  "tests/evaluator/string-equality.lox": [
+    "true\n"
+  ],
   "tests/evaluator/unary-minus.lox": [
     "-5\n"
   ],
