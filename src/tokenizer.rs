@@ -30,8 +30,9 @@ impl Token {
             },
             Token::String(value) => {
                 let name = "STRING";
+                let debug_value = format!("{value:?}").replace("\\\\", "\\");
 
-                format!("{name} {value:?} {value}")
+                format!("{name} {debug_value} {value}")
             },
         }
     }
