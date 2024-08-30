@@ -17,11 +17,17 @@
   "tests/tokenizer/negation-and-inequality.lox": [
     "BANG ! null\nBANG_EQUAL != null\nEQUAL_EQUAL == null\nEOF  null\n"
   ],
+  "tests/tokenizer/numbers.lox": [
+    "NUMBER 123 123.0\nNUMBER 123.456 123.456\nDOT . null\nNUMBER 456 456.0\nNUMBER 123 123.0\nDOT . null\nEOF  null\n"
+  ],
   "tests/tokenizer/other-single-characters.lox": [
     "LEFT_PAREN ( null\nLEFT_BRACE { null\nSTAR * null\nDOT . null\nCOMMA , null\nPLUS + null\nSTAR * null\nRIGHT_BRACE } null\nRIGHT_PAREN ) null\nEOF  null\n"
   ],
   "tests/tokenizer/parentheses.lox": [
     "LEFT_PAREN ( null\nLEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n"
+  ],
+  "tests/tokenizer/strings-with-escapes.lox": [
+    "STRING \"foo \\tbar 123 // hello world!\" foo \\tbar 123 // hello world!\nEOF  null\n"
   ],
   "tests/tokenizer/strings.lox": [
     "STRING \"foo baz\" foo baz\nEOF  null\n"

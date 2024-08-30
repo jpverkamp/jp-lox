@@ -3,12 +3,15 @@ use derive_more::Display;
 
 use crate::const_enum;
 
-#[derive(Debug, Display, Clone, PartialEq, Eq)]
+#[derive(Debug, Display, Clone, PartialEq)]
 pub enum Token {
     EOF,
     CharToken(CharToken),
     Keyword(Keyword),
     String(String),
+
+    #[display("{}", _1)]
+    Number(String, f64),
 }
 
 // Code crafters requires a very specific output format, implement it here
@@ -29,8 +32,15 @@ impl Token {
                 format!("{name} {lexeme} null")
             },
             Token::String(value) => {
-                let name = "STRING";
-                format!("{name} \"{value}\" {value}")
+                format!("STRING \"{value}\" {value}")
+            },
+            Token::Number(lexeme, value) => {
+                // Integers always print with .0 for reasons
+                if value.fract() == 0.0 {
+                    format!("NUMBER {lexeme} {value}.0")
+                } else {
+                    format!("NUMBER {lexeme} {value}")
+                }
             },
         }
     }
@@ -165,6 +175,43 @@ impl<'a> Iterator for Tokenizer<'a> {
             self.byte_pos += 1;
 
             return Some(Token::String(value));
+        }
+
+        // Read numbers
+        // Numbers must start with a digit (cannot do .1)
+        // Numbers can contain a single . (cannot do 1.2.3)
+        // Numbers must have a digit after the . (cannot do 1. That's two tokens)
+        if self.chars[self.char_pos].is_digit(10) {
+            let mut value = String::new();
+            let mut has_dot = false;
+            let mut last_dot = false;
+
+            while self.char_pos < self.chars.len() {
+                let c = self.chars[self.char_pos];
+
+                if c.is_digit(10) {
+                    value.push(c);
+                    last_dot = false;
+                } else if c == '.' && !has_dot {
+                    value.push(c);
+                    has_dot = true;
+                    last_dot = true;
+                } else {
+                    break;
+                }
+
+                self.char_pos += 1;
+                self.byte_pos += 1;
+            }
+
+            // If the last character was a dot, we need to back up
+            if last_dot {
+                self.char_pos -= 1;
+                self.byte_pos -= 1;
+            }
+
+            let value: f64 = value.parse().unwrap();
+            return Some(Token::Number(value.to_string(), value));
         }
 
         // Try to match keywords first
