@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser as ClapParser, Subcommand};
 use clap_stdin::FileOrStdin;
+use env_logger;
 
 mod const_enum;
 mod parser;
@@ -14,6 +15,11 @@ use tokenizer::Tokenizer;
 #[derive(Debug, ClapParser)]
 #[clap(name = "jp-lox", version)]
 pub struct Args {
+    /// Debug mode
+    #[clap(short, long)]
+    debug: bool,
+
+    /// Subcommand to run
     #[clap(subcommand)]
     command: Command,
 }
@@ -34,6 +40,11 @@ enum Command {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    if args.debug {
+        env_logger::Builder::new().filter_level(log::LevelFilter::Debug).init();
+    } else {
+        env_logger::init();
+    }
 
     match args.command {
         Command::Tokenize { input } => {
