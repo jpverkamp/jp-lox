@@ -124,7 +124,7 @@ impl<'a> Iterator for Tokenizer<'a> {
 
         // Anything else should emit an error and continue as best we can
         self.encountered_error = true;
-        eprintln!("[line {}] Error: Unexpected character: {:?}", self.line, c);
+        eprintln!("[line {}] Error: Unexpected character: {}", self.line, c);
         self.column += 1;
         self.next()
     }
