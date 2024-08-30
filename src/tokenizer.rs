@@ -34,14 +34,14 @@ impl Token {
                 format!("{name} {lexeme} null")
             },
             Token::Literal(lexeme, value) => {
-                if let Value::Bool(value) = value {
-                    let name = value.to_string().to_case(Case::ScreamingSnake);
-                    return format!("{name} {value} null");
-                }
-
                 let name = match value {
-                    Value::Nil => "NIL",
-                    Value::Bool(_) => unreachable!("Handled above"),
+                    Value::Nil => {
+                        return "NIL nil null".to_string();
+                    },
+                    Value::Bool(_) => {
+                        let name = value.to_string().to_case(Case::ScreamingSnake);
+                        return format!("{name} {value} null");
+                    },
                     Value::Number(_) => "NUMBER",
                     Value::String(_) => "STRING",
                 };
