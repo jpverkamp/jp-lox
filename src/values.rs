@@ -6,6 +6,7 @@ pub enum Value {
     Bool(bool),
     Number(f64),
     String(String),
+    Symbol(String),
 }
 
 impl Value {
@@ -31,6 +32,7 @@ impl Display for Value {
                 }
             },
             Value::String(s) => write!(f, "{}", s),
+            Value::Symbol(s) => write!(f, "{}", s),
         }
     }
 }

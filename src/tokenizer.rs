@@ -46,6 +46,7 @@ impl Token {
                     },
                     Value::Number(_) => "NUMBER",
                     Value::String(_) => "STRING",
+                    Value::Symbol(_) => "SYMBOL",
                 };
                 format!("{name} {lexeme} {value}")
             },

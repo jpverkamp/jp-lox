@@ -1,5 +1,26 @@
 {
+  "tests/evaluator/binary-minus-with-negation.lox": [
+    "7\n"
+  ],
+  "tests/evaluator/binary-minus.lox": [
+    "3\n"
+  ],
   "tests/evaluator/literal-boolean.lox": [
     "true\n"
+  ],
+  "tests/evaluator/literal-number-1.lox": [
+    "10.4\n"
+  ],
+  "tests/evaluator/literal-number-2.lox": [
+    "10\n"
+  ],
+  "tests/evaluator/literal-string.lox": [
+    "hello world!\n"
+  ],
+  "tests/evaluator/unary-minus.lox": [
+    "-5\n"
+  ],
+  "tests/evaluator/unary-not.lox": [
+    "false\n"
   ]
 }
