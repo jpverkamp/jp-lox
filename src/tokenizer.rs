@@ -31,6 +31,13 @@ char_enum!{
         RightParen => ')',
         LeftBrace => '{',
         RightBrace => '}',
+        Comma => ',',
+        Dot => '.',
+        Semicolon => ';',
+        Plus => '+',
+        Minus => '-',
+        Star => '*',
+        Slash => '/',
     }
 }
 
