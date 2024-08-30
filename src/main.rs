@@ -3,6 +3,9 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+mod tokenizer;
+use tokenizer::Tokenizer;
+
 /// Implementation of the lox programming language for code crafters
 #[derive(Debug, Parser)]
 #[clap(name = "jp-lox", version)]
@@ -27,10 +30,9 @@ fn main() -> Result<()> {
         Command::Tokenize { path } => {
             let file_contents = fs::read_to_string(&path)?;
 
-            if !file_contents.is_empty() {
-                unimplemented!("Tokenize the input file");
-            } else {
-                println!("EOF  null"); // Placeholder, remove this line when implementing the scanner
+            let tokenizer = Tokenizer::new(&file_contents);
+            for token in tokenizer {
+                println!("{}", token.lox_format());
             }
         },
     }
