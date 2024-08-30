@@ -8,6 +8,9 @@
   "tests/evaluator/binary-minus.lox": [
     "3\n"
   ],
+  "tests/evaluator/binary-string-concat.lox": [
+    "hello world!\n"
+  ],
   "tests/evaluator/literal-boolean.lox": [
     "true\n"
   ],
