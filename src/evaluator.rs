@@ -28,8 +28,8 @@ macro_rules! as_number {
 macro_rules! as_boolean {
     ($expr:expr) => {
         match $expr {
-            Value::Bool(b) => b,
-            _ => return Err(anyhow!("Expected boolean, found {}", $expr)),
+            Value::Bool(false) | Value::Nil => false,
+            _ => true,
         }
     };
 }
