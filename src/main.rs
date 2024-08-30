@@ -1,7 +1,6 @@
-use std::{fs, path::PathBuf};
-
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use clap_stdin::FileOrStdin;
 
 mod const_enum;
 
@@ -20,8 +19,8 @@ pub struct Args {
 enum Command {
     /// Tokenize the input file.
     Tokenize {
-        /// Input lox file. 
-        path: PathBuf,
+        /// Input lox file or - for stdin. 
+        input: FileOrStdin,
     },
 }
 
@@ -29,8 +28,9 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     match args.command {
-        Command::Tokenize { path } => {
-            let file_contents = fs::read_to_string(&path)?;
+        Command::Tokenize { input } => {
+            // Read from the file or stdin
+            let file_contents = input.contents()?;
 
             let mut tokenizer = Tokenizer::new(&file_contents);
             for token in &mut tokenizer {

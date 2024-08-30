@@ -75,9 +75,7 @@ pub struct Tokenizer<'a> {
     char_pos: usize,
 
     // The current position of the iterator in the source code
-    // These are 1 based
     line: usize,
-    column: usize,
 
     // Flag that the iterator has already emitted EOF, so should not iterate any more
     emitted_eof: bool,
@@ -96,7 +94,6 @@ impl<'a> Tokenizer<'a> {
             char_pos: 0,
 
             line: 1,
-            column: 1,
 
             emitted_eof: false,
             encountered_error: false,
@@ -124,6 +121,16 @@ impl<'a> Iterator for Tokenizer<'a> {
             self.emitted_eof = true;
             return Some(Token::EOF);
         }
+        
+        // Try to match comments, from // to EOL
+        if self.source[self.byte_pos..].starts_with("//") {
+            while self.char_pos < self.chars.len() && self.chars[self.char_pos] != '\n' {
+                self.char_pos += 1;
+                self.byte_pos += 1;
+            }
+
+            return self.next();
+        }
 
         // Try to match keywords first
         // See, I knew there was a reason I was keeping around the raw bytes
@@ -134,7 +141,6 @@ impl<'a> Iterator for Tokenizer<'a> {
             if self.source[self.byte_pos..].starts_with(pattern) {
                 self.byte_pos += pattern.len();
                 self.char_pos += pattern.chars().count();
-                self.column += pattern.chars().count();
 
                 return Some(Token::Keyword(keyword));
             }
@@ -147,21 +153,20 @@ impl<'a> Iterator for Tokenizer<'a> {
 
         // Match the character to a token
         if let Ok(token) = CharToken::try_from(c) {
-            self.column += 1;
             return Some(Token::CharToken(token));
         }
 
-        // Newlines don't emit a token, but they do increment the line number
-        if c == '\n' {
-            self.line += 1;
-            self.column = 1;
+        // Newlines don't emit a token, but '\n' does increment the line number
+        if c.is_whitespace() {
+            if c == '\n' {
+                self.line += 1;
+            }
             return self.next();
         }
 
         // Anything else should emit an error and continue as best we can
         self.encountered_error = true;
         eprintln!("[line {}] Error: Unexpected character: {}", self.line, c);
-        self.column += 1;
         self.next()
     }
 }

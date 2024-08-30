@@ -1,0 +1,26 @@
+{
+  "tests/tokenizer/assignment-and-equality.lox": [
+    "EQUAL = null\nLEFT_BRACE { null\nEQUAL_EQUAL == null\nEQUAL = null\nRIGHT_BRACE } null\nEOF  null\n"
+  ],
+  "tests/tokenizer/braces.lox": [
+    "LEFT_BRACE { null\nLEFT_BRACE { null\nRIGHT_BRACE } null\nRIGHT_BRACE } null\nEOF  null\n"
+  ],
+  "tests/tokenizer/comments.lox": [
+    "LEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n"
+  ],
+  "tests/tokenizer/empty-file.lox": [
+    "EOF  null\n"
+  ],
+  "tests/tokenizer/inequality.lox": [
+    "LESS < null\nLESS_EQUAL <= null\nGREATER > null\nGREATER_EQUAL >= null\nEOF  null\n"
+  ],
+  "tests/tokenizer/negation-and-inequality.lox": [
+    "BANG ! null\nBANG_EQUAL != null\nEQUAL_EQUAL == null\nEOF  null\n"
+  ],
+  "tests/tokenizer/other-single-characters.lox": [
+    "LEFT_PAREN ( null\nLEFT_BRACE { null\nSTAR * null\nDOT . null\nCOMMA , null\nPLUS + null\nSTAR * null\nRIGHT_BRACE } null\nRIGHT_PAREN ) null\nEOF  null\n"
+  ],
+  "tests/tokenizer/parentheses.lox": [
+    "LEFT_PAREN ( null\nLEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n"
+  ]
+}
