@@ -11,6 +11,9 @@
   "tests/evaluator/binary-string-concat.lox": [
     "hello world!\n"
   ],
+  "tests/evaluator/comparison.lox": [
+    "true\n"
+  ],
   "tests/evaluator/literal-boolean.lox": [
     "true\n"
   ],

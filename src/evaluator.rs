@@ -34,11 +34,26 @@ macro_rules! as_boolean {
     };
 }
 
-macro_rules! as_string {
-    ($expr:expr) => {
-        match $expr {
-            Value::String(s) => s.clone(),
-            _ => return Err(anyhow!("Expected string, found {}", $expr)),
+macro_rules! numeric_binop {
+    ($op:tt) => {
+        |args: Vec<Value>| {
+            assert_arity!(args => 2);
+
+            let a = as_number!(args[0]);
+            let b = as_number!(args[1]);
+            Ok(Value::Number(a $op b))
+        }
+    };
+}
+
+macro_rules! comparison_binop {
+    ($op:tt) => {
+        |args: Vec<Value>| {
+            assert_arity!(args => 2);
+
+            let a = as_number!(args[0]);
+            let b = as_number!(args[1]);
+            Ok(Value::Bool(a $op b))
         }
     };
 }
@@ -94,27 +109,20 @@ impl Evaluate for AstNode {
                                     Ok(Value::Number(a - b))
                                 }
                             },
-                            "*" => |args: Vec<Value>| {
-                                assert_arity!(args => 2);
-
-                                let a = as_number!(args[0]);
-                                let b = as_number!(args[1]);
-                                Ok(Value::Number(a * b))
-                            },
-                            "/" => |args: Vec<Value>| {
-                                assert_arity!(args => 2);
-
-                                let a = as_number!(args[0]);
-                                let b = as_number!(args[1]);
-                                Ok(Value::Number(a / b))
-                            },
+                            "*" => numeric_binop!(*),
+                            "/" => numeric_binop!(/),
                             "!" => |args: Vec<Value>| {
                                 assert_arity!(args => 1);
 
                                 let v = as_boolean!(args[0]);
                                 Ok(Value::Bool(!v))
                             },
-
+                            "<" => comparison_binop!(<),
+                            "<=" => comparison_binop!(<=),
+                            "==" => comparison_binop!(==),
+                            "!=" => comparison_binop!(!=),
+                            ">=" => comparison_binop!(>=),
+                            ">" => comparison_binop!(>),
                             _ => unimplemented!("Only built ins are implemented"),
                         }
                     }
