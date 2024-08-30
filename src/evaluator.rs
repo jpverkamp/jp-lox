@@ -10,7 +10,9 @@ impl Evaluate for AstNode {
     fn evaluate(&self) -> Result<Value> {
         match self {
             AstNode::Literal(value) => Ok(value.clone()),
-            AstNode::Program(nodes) => {
+            
+            AstNode::Program(nodes) 
+            | AstNode::Group(nodes) => {
                 let mut last = Value::Nil;
                 for node in nodes {
                     last = node.evaluate()?;
