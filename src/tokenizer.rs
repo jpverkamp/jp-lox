@@ -46,6 +46,7 @@ const_enum!{
         Star => '*',
         Slash => '/',
         Equal => '=',
+        Bang => '!',
     }
 }
 
@@ -53,6 +54,7 @@ const_enum!{
 const_enum!{
     pub Keyword as &'static str {
         EqualEqual => "==",
+        BangEqual => "!=",
     }
 }
 
