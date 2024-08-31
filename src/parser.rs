@@ -108,11 +108,6 @@ impl Parser<'_> {
             let node = self.parse_statement()?;
             span = span.merge(&node.span());
             nodes.push(node);
-
-            // Semi colon delimited
-            if let Some(Token::Keyword(_, Keyword::Semicolon)) = self.tokenizer.peek() {
-                self.tokenizer.next();
-            }
         }
 
         Ok(AstNode::Program(span, nodes))
@@ -122,19 +117,33 @@ impl Parser<'_> {
         log::debug!("parse_statement");
 
         match self.tokenizer.peek() {
-            Some(Token::Keyword(_, Keyword::Print)) => self.parse_print(),
-            Some(Token::Keyword(_, Keyword::Var)) => self.parse_var(),
-            _ => self.parse_expression(),
+            Some(Token::Keyword(_, Keyword::Print)) => self.parse_print_statement(),
+            Some(Token::Keyword(_, Keyword::Var)) => self.parse_var_statement(),
+            _ => self.parse_expression_statement(),
         }
     }
 
-    fn parse_print(&mut self) -> Result<AstNode> {
+    fn parse_expression_statement(&mut self) -> Result<AstNode> {
+        let expression = self.parse_expression()?;
+        let mut span = expression.span();
+
+        let semicolon = self.consume_semicolon_or_eof()?;
+        span = span.merge(&semicolon.span());
+
+        Ok(expression)
+    }
+
+    fn parse_print_statement(&mut self) -> Result<AstNode> {
         let keyword = self.tokenizer.next().unwrap();
         let span = keyword.span();
         log::debug!("parse_print @ {span:?}");
 
         let expression = self.parse_expression()?;
         let span = span.merge(&expression.span());
+
+        let semicolon = self.consume_semicolon_or_eof()?;
+        let span = span.merge(&semicolon.span());
+
 
         Ok(AstNode::Application(
             span,
@@ -143,7 +152,7 @@ impl Parser<'_> {
         ))
     }
 
-    fn parse_var(&mut self) -> Result<AstNode> {
+    fn parse_var_statement(&mut self) -> Result<AstNode> {
         let var_keyword = self.tokenizer.next().unwrap();
         let span = var_keyword.span();
         log::debug!("parse_var @ {span:?}");
@@ -156,16 +165,33 @@ impl Parser<'_> {
             return Err(anyhow!("[line {}] Error at '{}': Expect identifier", line, var_keyword));
         };
 
-        if let Some(Token::Keyword(_, Keyword::Equal)) = self.tokenizer.next() {
-        } else {
-            let line = self.line_number(span.start);
-            return Err(anyhow!("[line {}] Error at '{}': Expect '='", line, var_keyword));
+        // We want to have '= expr ;' or ';'
+        match self.tokenizer.next() {
+            // End of expression, default to nil and return immediately
+            Some(Token::Keyword(semispan, Keyword::Semicolon)) => {
+                let span = span.merge(&semispan);
+                Ok(AstNode::Assignment(span, name, Box::new(AstNode::Literal(span, Value::Nil))))
+            }
+            // Equal, parse expression
+            Some(Token::Keyword(_, Keyword::Equal)) => {
+                let expression = self.parse_expression()?;
+                let span = span.merge(&expression.span());
+
+                let semicolon = self.consume_semicolon_or_eof()?;
+                let span = span.merge(&semicolon.span());
+
+                Ok(AstNode::Assignment(span, name, Box::new(expression)))
+            }
+            // Anything else is an error, split for better reporting
+            Some(token) => {
+                let line = self.line_number(token.span().start);
+                Err(anyhow!("[line {}] Error at '{}': Expect '=' or ';'", line, var_keyword))
+            }
+            None => {
+                let line = self.line_number(span.start);
+                Err(anyhow!("[line {}] Error at '{}': Expect '=' or ';'", line, var_keyword))
+            }
         }
-
-        let expression = self.parse_expression()?;
-        let span = span.merge(&expression.span());
-
-        Ok(AstNode::Assignment(span, name, Box::new(expression)))
     }
 
 
@@ -307,6 +333,24 @@ impl Parser<'_> {
             }
         } else {
             unreachable!("EOF should be handled in parse_expression")
+        }
+    }
+
+    fn consume_semicolon_or_eof(&mut self) -> Result<Token> {
+        match self.tokenizer.peek() {
+            Some(Token::Keyword(_, Keyword::Semicolon)) => {
+                Ok(self.tokenizer.next().unwrap())
+            }
+            Some(Token::EOF) => {
+                Ok(Token::EOF)
+            }
+            
+            Some(token) => {
+                let line = token.span().line;
+                Err(anyhow!("[line {}] Error: Expect ';'", line))
+            }
+
+            _ => unreachable!("EOF should be handled above"),
         }
     }
 }

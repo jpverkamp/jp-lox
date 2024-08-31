@@ -3,7 +3,8 @@
     "(group foo)\n\n"
   ],
   "tests/parser/literal-boolean.lox": [
-    "true\nfalse\n\n"
+    "true\nfalse\n\n",
+    "false\n\n"
   ],
   "tests/parser/unary-application.lox": [
     "(! true)\n\n"
