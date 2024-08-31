@@ -4,12 +4,14 @@ use clap_stdin::FileOrStdin;
 use env_logger;
 
 mod const_enum;
+mod environment;
 mod evaluator;
 mod parser;
 mod span;
 mod tokenizer;
 mod values;
 
+use environment::EnvironmentStack;
 use evaluator::Evaluate;
 use parser::Parser;
 use tokenizer::Tokenizer;
@@ -119,7 +121,8 @@ fn main() -> Result<()> {
 
     // ----- Evaluating -----
 
-    let output = match ast.evaluate() {
+    let mut env = EnvironmentStack::new();
+    let output = match ast.evaluate(&mut env) {
         Ok(value) => value,
         Err(e) => {
             eprintln!("{}", e);

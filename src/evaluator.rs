@@ -1,9 +1,11 @@
-use crate::{parser::AstNode, values::Value};
+use crate::parser::AstNode;
+use crate::values::Value;
+use crate::environment::Environment;
 
 use anyhow::{anyhow, Result};
 
 pub trait Evaluate {
-    fn evaluate(&self) -> Result<Value>;
+    fn evaluate(&self, env: &mut impl Environment) -> Result<Value>;
 }
 
 macro_rules! assert_arity {
@@ -59,7 +61,7 @@ macro_rules! comparison_binop {
 }
 
 impl Evaluate for AstNode {
-    fn evaluate(&self) -> Result<Value> {
+    fn evaluate(&self, env: &mut impl Environment) -> Result<Value> {
         match self {
             AstNode::Literal(_, value) => Ok(value.clone()),
             AstNode::Symbol(_, name) => Ok(Value::Symbol(name.clone())),
@@ -67,14 +69,14 @@ impl Evaluate for AstNode {
             AstNode::Program(_, nodes) | AstNode::Group(_, nodes) => {
                 let mut last = Value::Nil;
                 for node in nodes {
-                    last = node.evaluate()?;
+                    last = node.evaluate(env)?;
                 }
 
                 Ok(last)
             }
 
             AstNode::Application(span, func, args) => {
-                let func = match func.evaluate()? {
+                let func = match func.evaluate(env)? {
                     Value::Symbol(name) => {
                         match name.as_str() {
                             // Overloaded operator, both addition and string concatenation
@@ -165,7 +167,7 @@ impl Evaluate for AstNode {
 
                 let mut arg_values = Vec::new();
                 for arg in args {
-                    arg_values.push(arg.evaluate()?);
+                    arg_values.push(arg.evaluate(env)?);
                 }
 
                 match func(arg_values) {
