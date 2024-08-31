@@ -41,7 +41,7 @@ impl Token {
                     }
                     Value::Number(_) => "NUMBER",
                     Value::String(_) => "STRING",
-                    Value::Symbol(_) => "SYMBOL",
+                    Value::Builtin(_) => "BUILTIN",
                 };
                 format!("{name} {lexeme} {value}")
             }
@@ -176,18 +176,23 @@ impl<'a> Iterator for Tokenizer<'a> {
 
         // If we have a peeked token, clear and return it
         if let Some(token) = self.peeked.take() {
+            log::debug!("Clearing peeked token: {}", token);
             self.peeked = None;
             return Some(token);
         }
 
         // We've reached the end of the source
         if self.char_pos >= self.chars.len() {
+            log::debug!("Reached EOF");
+
             self.emitted_eof = true;
             return Some(Token::EOF);
         }
 
         // Try to match comments, from // to EOL
         if self.char_pos < self.chars.len() - 1 && self.chars[self.char_pos] == '/' && self.chars[self.char_pos + 1] == '/' {
+            log::debug!("Matching comment");
+
             while self.char_pos < self.chars.len() && self.chars[self.char_pos] != '\n' {
                 self.char_pos += 1;
                 self.byte_pos += 1;
@@ -199,6 +204,8 @@ impl<'a> Iterator for Tokenizer<'a> {
         // Read strings, currently there is no escaping, so read until a matching " or EOL
         // If we reach EOL, report an error and continue on the next line
         if self.chars[self.char_pos] == '"' {
+            log::debug!("Matching string");
+
             let mut value = String::new();
             let start = self.char_pos;
             self.char_pos += 1;
@@ -243,6 +250,8 @@ impl<'a> Iterator for Tokenizer<'a> {
         // Numbers can contain a single . (cannot do 1.2.3)
         // Numbers must have a digit after the . (cannot do 1. That's two tokens)
         if self.chars[self.char_pos].is_digit(10) {
+            log::debug!("Matching number");
+
             let mut lexeme = String::new();
             let mut has_dot = false;
             let mut last_dot = false;
@@ -287,6 +296,8 @@ impl<'a> Iterator for Tokenizer<'a> {
         for (lexeme, value) in Value::CONSTANT_VALUES.iter() {
             let lexeme_chars = lexeme.chars().collect::<Vec<_>>();
             if self.chars[self.char_pos..].starts_with(&lexeme_chars) {
+                log::debug!("Matching constant: {}", lexeme);
+
                 let start = self.char_pos;
                 self.char_pos += lexeme.len();
                 self.byte_pos += lexeme.len();
@@ -303,6 +314,8 @@ impl<'a> Iterator for Tokenizer<'a> {
         // Identifiers start with a letter or _
         // Identifiers can contain letters, numbers, and _
         if self.chars[self.char_pos].is_alphabetic() || self.chars[self.char_pos] == '_' {
+            log::debug!("Matching identifier");
+
             let mut value = String::new();
             let start = self.char_pos;
 
@@ -336,6 +349,8 @@ impl<'a> Iterator for Tokenizer<'a> {
             let pattern_chars = pattern.chars().collect::<Vec<_>>();
 
             if self.chars[self.char_pos..].starts_with(&pattern_chars) {
+                log::debug!("Matching keyword: {}", keyword);
+
                 let start = self.char_pos;
                 self.byte_pos += pattern.len();
                 self.char_pos += pattern_chars.len();

@@ -18,6 +18,7 @@ pub enum AstNode {
     Symbol(Span, String),
     Group(Span, Vec<AstNode>),
     Application(Span, Box<AstNode>, Vec<AstNode>),
+    Assignment(Span, String, Box<AstNode>),
     Program(Span, Vec<AstNode>),
 }
 
@@ -50,6 +51,11 @@ impl Display for AstNode {
 
                 std::fmt::Result::Ok(())
             }
+            AstNode::Assignment(_, name, value) => {
+                write!(f, "(var {} {})", name, value)?;
+
+                std::fmt::Result::Ok(())
+            }
             AstNode::Program(_, nodes) => {
                 for node in nodes {
                     write!(f, "{}\n", node)?;
@@ -68,6 +74,7 @@ impl AstNode {
             | AstNode::Symbol(span, _)
             | AstNode::Group(span, _)
             | AstNode::Application(span, _, _)
+            | AstNode::Assignment(span, _, _)
             | AstNode::Program(span, _) => *span,
         }
     }
@@ -112,8 +119,11 @@ impl Parser<'_> {
     }
 
     fn parse_statement(&mut self) -> Result<AstNode> {
+        log::debug!("parse_statement");
+
         match self.tokenizer.peek() {
             Some(Token::Keyword(_, Keyword::Print)) => self.parse_print(),
+            Some(Token::Keyword(_, Keyword::Var)) => self.parse_var(),
             _ => self.parse_expression(),
         }
     }
@@ -121,6 +131,8 @@ impl Parser<'_> {
     fn parse_print(&mut self) -> Result<AstNode> {
         let keyword = self.tokenizer.next().unwrap();
         let span = keyword.span();
+        log::debug!("parse_print @ {span:?}");
+
         let expression = self.parse_expression()?;
         let span = span.merge(&expression.span());
 
@@ -131,8 +143,34 @@ impl Parser<'_> {
         ))
     }
 
+    fn parse_var(&mut self) -> Result<AstNode> {
+        let var_keyword = self.tokenizer.next().unwrap();
+        let span = var_keyword.span();
+        log::debug!("parse_var @ {span:?}");
+
+        let name = if let Some(Token::Identifier(span, name)) = self.tokenizer.next() {
+            span.merge(&span);
+            name
+        } else {
+            let line = self.line_number(span.start);
+            return Err(anyhow!("[line {}] Error at '{}': Expect identifier", line, var_keyword));
+        };
+
+        if let Some(Token::Keyword(_, Keyword::Equal)) = self.tokenizer.next() {
+        } else {
+            let line = self.line_number(span.start);
+            return Err(anyhow!("[line {}] Error at '{}': Expect '='", line, var_keyword));
+        }
+
+        let expression = self.parse_expression()?;
+        let span = span.merge(&expression.span());
+
+        Ok(AstNode::Assignment(span, name, Box::new(expression)))
+    }
+
 
     fn parse_expression(&mut self) -> Result<AstNode> {
+        log::debug!("parse_expression");
         self.parse_equality()
     }
 
@@ -142,6 +180,8 @@ impl Parser<'_> {
         while let Some((&op_span, op)) = matches_keyword!(
             self.tokenizer.peek() => BangEqual, EqualEqual,
         ) {
+            log::debug!("parse_equality @ op_span: {:?}", op_span);
+
             self.tokenizer.next();
             let rhs = self.parse_comparison()?;
             let span = lhs.span().merge(&op_span.merge(&rhs.span()));
@@ -159,6 +199,8 @@ impl Parser<'_> {
         while let Some((&op_span, op)) = matches_keyword!(
             self.tokenizer.peek() => Greater, GreaterEqual, Less, LessEqual,
         ) {
+            log::debug!("parse_comparison @ op_span: {:?}", op_span);
+
             self.tokenizer.next();
             let rhs = self.parse_term()?;
             let span = lhs.span().merge(&op_span.merge(&rhs.span()));
@@ -176,6 +218,8 @@ impl Parser<'_> {
         while let Some((&op_span, op)) = matches_keyword!(
             self.tokenizer.peek() => Minus, Plus,
         ) {
+            log::debug!("parse_term @ op_span: {:?}", op_span);
+
             self.tokenizer.next();
             let rhs = self.parse_factor()?;
             let span = lhs.span().merge(&op_span.merge(&rhs.span()));
@@ -193,6 +237,8 @@ impl Parser<'_> {
         while let Some((&op_span, op)) = matches_keyword!(
             self.tokenizer.peek() => Slash, Star,
         ) {
+            log::debug!("parse_factor @ op_span: {:?}", op_span);
+
             self.tokenizer.next();
             let rhs = self.parse_unary()?;
             let span = lhs.span().merge(&op_span.merge(&rhs.span()));
@@ -208,6 +254,8 @@ impl Parser<'_> {
         if let Some((&op_span, op)) = matches_keyword!(
             self.tokenizer.peek() => Bang, Minus,
         ) {
+            log::debug!("parse_unary @ op_span: {:?}", op_span);
+
             self.tokenizer.next();
             let rhs = self.parse_unary()?;
             let span = op_span.merge(&rhs.span());
@@ -224,6 +272,8 @@ impl Parser<'_> {
 
     fn parse_primary(&mut self) -> Result<AstNode> {
         if let Some(token) = self.tokenizer.next() {
+            log::debug!("parse_primary @ {:?}", token.span());
+
             match token {
                 Token::Literal(span, _, v) => Ok(AstNode::Literal(span, v)),
                 Token::Keyword(left_span, Keyword::LeftParen) => {
@@ -243,13 +293,8 @@ impl Parser<'_> {
                     }
                 }
                 Token::EOF => Err(anyhow!("Error at EOF: Expect expression")),
-                Token::Identifier(span, _) => {
-                    let line = self.line_number(span.start);
-                    Err(anyhow!(
-                        "[line {}] Error at '{}': Expect expression",
-                        line,
-                        token
-                    ))
+                Token::Identifier(span, id) => {
+                    Ok(AstNode::Symbol(span, id))
                 }
                 Token::Keyword(span, keyword) => {
                     let line = self.line_number(span.start);

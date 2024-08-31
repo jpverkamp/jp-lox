@@ -1,4 +1,4 @@
-use crate::parser::AstNode;
+use crate::{parser::AstNode, tokenizer::Keyword};
 use crate::values::Value;
 use crate::environment::Environment;
 
@@ -64,7 +64,17 @@ impl Evaluate for AstNode {
     fn evaluate(&self, env: &mut impl Environment) -> Result<Value> {
         match self {
             AstNode::Literal(_, value) => Ok(value.clone()),
-            AstNode::Symbol(_, name) => Ok(Value::Symbol(name.clone())),
+            AstNode::Symbol(_, name) => {
+                // Keywords become builtins; fall back to env; then error
+                if Keyword::try_from(name.as_str()).is_ok() {
+                    return Ok(Value::Builtin(name.clone()));
+                }
+
+                match env.get(name) {
+                    Some(value) => Ok(value),
+                    None => Err(anyhow!("Undefined variable '{}'", name)),
+                }
+            },
 
             AstNode::Program(_, nodes) | AstNode::Group(_, nodes) => {
                 let mut last = Value::Nil;
@@ -77,7 +87,7 @@ impl Evaluate for AstNode {
 
             AstNode::Application(span, func, args) => {
                 let func = match func.evaluate(env)? {
-                    Value::Symbol(name) => {
+                    Value::Builtin(name) => {
                         match name.as_str() {
                             // Overloaded operator, both addition and string concatenation
                             // TODO: This is ugly :)
@@ -174,6 +184,12 @@ impl Evaluate for AstNode {
                     Ok(value) => Ok(value),
                     Err(e) => Err(anyhow!("[line {}] {e}", span.line))
                 }
+            }
+
+            AstNode::Assignment(_, name, body) => {
+                let value = body.evaluate(env)?;
+                env.set(name, value.clone());
+                Ok(value)
             }
         }
     }

@@ -6,7 +6,7 @@ pub enum Value {
     Bool(bool),
     Number(f64),
     String(String),
-    Symbol(String),
+    Builtin(String),
 }
 
 impl Value {
@@ -32,7 +32,7 @@ impl Display for Value {
                 }
             }
             Value::String(s) => write!(f, "{}", s),
-            Value::Symbol(s) => write!(f, "{}", s),
+            Value::Builtin(s) => write!(f, "<builtin {}>", s),
         }
     }
 }

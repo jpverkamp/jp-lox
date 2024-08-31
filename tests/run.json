@@ -10,5 +10,8 @@
   ],
   "tests/run/unicode.lox": [
     "false\n11\n24\n20\n\n()\nnon-ascii: ॐ\n"
+  ],
+  "tests/run/variable.lox": [
+    "12\n"
   ]
 }
