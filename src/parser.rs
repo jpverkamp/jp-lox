@@ -179,10 +179,10 @@ impl Parser<'_> {
 
     fn parse_expression_statement(&mut self) -> Result<AstNode> {
         let expression = self.parse_expression()?;
-        let mut span = expression.span();
 
-        let semicolon = self.consume_semicolon_or_eof()?;
-        span = span.merge(&semicolon.span());
+        // TODO: Should the span include this ;? 
+        // Currently I can't, since I can't set the expresion's span
+        self.consume_semicolon_or_eof()?;
 
         Ok(expression)
     }
@@ -411,7 +411,8 @@ impl Parser<'_> {
                 }
             }
         } else {
-            unreachable!("EOF should be handled in parse_expression")
+            let line = self.line_number(self.tokenizer.source.len());
+            Err(anyhow!("[line {line}] Error at end: Expect '}}' ."))
         }
     }
 
