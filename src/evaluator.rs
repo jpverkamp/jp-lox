@@ -149,7 +149,10 @@ impl Evaluate for AstNode {
                             "print" => |args: Vec<Value>| {
                                 assert_arity!(args => 1);
 
-                                println!("{}", args[0]);
+                                match args[0] {
+                                    Value::Number(n) => println!("{}", n),
+                                    _ => println!("{}", args[0]),
+                                }
 
                                 Ok(Value::Nil)
                             },
