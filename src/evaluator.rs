@@ -20,7 +20,7 @@ macro_rules! as_number {
     ($expr:expr) => {
         match $expr {
             Value::Number(n) => n,
-            _ => return Err(anyhow!("Expected number, found {}", $expr)),
+            _ => return Err(anyhow!("Operands must be numbers."))
         }
     };
 }
@@ -73,7 +73,7 @@ impl Evaluate for AstNode {
                 Ok(last)
             }
 
-            AstNode::Application(_, func, args) => {
+            AstNode::Application(span, func, args) => {
                 let func = match func.evaluate()? {
                     Value::Symbol(name) => {
                         match name.as_str() {
@@ -108,8 +108,11 @@ impl Evaluate for AstNode {
                                 assert_arity!(args => 1, 2);
 
                                 if args.len() == 1 {
-                                    let v = as_number!(args[0]);
-                                    Ok(Value::Number(-v))
+                                    if let Value::Number(v) = args[0] {
+                                        Ok(Value::Number(-v))
+                                    } else {
+                                        Err(anyhow!{"Operand must be a number."})
+                                    }
                                 } else {
                                     let a = as_number!(args[0]);
                                     let b = as_number!(args[1]);
@@ -154,8 +157,10 @@ impl Evaluate for AstNode {
                     arg_values.push(arg.evaluate()?);
                 }
 
-                let result = func(arg_values)?;
-                Ok(result)
+                match func(arg_values) {
+                    Ok(value) => Ok(value),
+                    Err(e) => Err(anyhow!("[line {}] {e}", span.line))
+                }
             }
         }
     }

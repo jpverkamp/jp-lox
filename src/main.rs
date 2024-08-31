@@ -101,8 +101,6 @@ fn main() -> Result<()> {
                 }
             };
 
-            dbg!(&ast);
-
             if parser.encountered_tokenizer_error() {
                 std::process::exit(65);
             }
@@ -111,7 +109,7 @@ fn main() -> Result<()> {
                 Ok(value) => value,
                 Err(e) => {
                     eprintln!("{}", e);
-                    std::process::exit(65);
+                    std::process::exit(70);
                 }
             };
 

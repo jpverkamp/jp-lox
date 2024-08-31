@@ -56,7 +56,7 @@ impl Token {
     #[allow(dead_code)]
     pub fn span(&self) -> &Span {
         match self {
-            Token::EOF => &Span { start: 0, end: 0 },
+            Token::EOF => &Span::ZERO,
 
             Token::Keyword(span, _) | Token::Literal(span, _, _) | Token::Identifier(span, _) => {
                 span
@@ -226,7 +226,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             let end = self.char_pos;
 
             return Some(Token::Literal(
-                Span { start, end },
+                Span { line: self.line, start, end },
                 format!("\"{value}\""),
                 Value::String(value),
             ));
@@ -271,7 +271,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             let end = self.char_pos;
 
             return Some(Token::Literal(
-                Span { start, end },
+                Span { line: self.line, start, end },
                 lexeme,
                 Value::Number(value),
             ));
@@ -285,7 +285,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                 self.byte_pos += lexeme.len();
                 let end = self.char_pos;
                 return Some(Token::Literal(
-                    Span { start, end },
+                    Span { line: self.line, start, end },
                     lexeme.to_string(),
                     value.clone(),
                 ));
@@ -317,9 +317,9 @@ impl<'a> Iterator for Tokenizer<'a> {
             // Check if it's actually a keyword
             // This is called 'maximal munch', so superduper doesn't get parsed as <super><duper>
             if let Ok(keyword) = Keyword::try_from(value.as_str()) {
-                return Some(Token::Keyword(Span { start, end }, keyword));
+                return Some(Token::Keyword(Span { line: self.line, start, end }, keyword));
             } else {
-                return Some(Token::Identifier(Span { start, end }, value));
+                return Some(Token::Identifier(Span { line: self.line, start, end }, value));
             }
         }
 
@@ -333,7 +333,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                 self.char_pos += pattern.chars().count();
                 let end = self.char_pos;
 
-                return Some(Token::Keyword(Span { start, end }, keyword));
+                return Some(Token::Keyword(Span { line: self.line, start, end }, keyword));
             }
         }
 
