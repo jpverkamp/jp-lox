@@ -98,13 +98,39 @@ impl Parser<'_> {
                 break;
             }
 
-            let node = self.parse_expression()?;
+            let node = self.parse_statement()?;
             span = span.merge(&node.span());
             nodes.push(node);
+
+            // Semi colon delimited
+            if let Some(Token::Keyword(_, Keyword::Semicolon)) = self.tokenizer.peek() {
+                self.tokenizer.next();
+            }
         }
 
         Ok(AstNode::Program(span, nodes))
     }
+
+    fn parse_statement(&mut self) -> Result<AstNode> {
+        match self.tokenizer.peek() {
+            Some(Token::Keyword(_, Keyword::Print)) => self.parse_print(),
+            _ => self.parse_expression(),
+        }
+    }
+
+    fn parse_print(&mut self) -> Result<AstNode> {
+        let keyword = self.tokenizer.next().unwrap();
+        let span = keyword.span();
+        let expression = self.parse_expression()?;
+        let span = span.merge(&expression.span());
+
+        Ok(AstNode::Application(
+            span,
+            Box::new(AstNode::Symbol(span, "print".to_string())),
+            vec![expression],
+        ))
+    }
+
 
     fn parse_expression(&mut self) -> Result<AstNode> {
         self.parse_equality()

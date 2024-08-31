@@ -26,6 +26,9 @@
   "tests/evaluator/literal-string.lox": [
     "hello world!\n"
   ],
+  "tests/evaluator/print.lox": [
+    "Hello, World!\n42.0\ntrue\n36.0\n"
+  ],
   "tests/evaluator/string-equality.lox": [
     "true\n"
   ],

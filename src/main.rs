@@ -115,6 +115,7 @@ fn main() -> Result<()> {
 
             // And now, for reasons... we *don't* want 10.0, we want 10
             match output {
+                values::Value::Nil => {},
                 values::Value::Number(n) => println!("{}", n),
                 _ => println!("{output}"),
             }

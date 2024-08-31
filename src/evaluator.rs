@@ -146,6 +146,14 @@ impl Evaluate for AstNode {
                                 Ok(Value::Bool(args[0] != args[1]))
                             },
 
+                            "print" => |args: Vec<Value>| {
+                                assert_arity!(args => 1);
+
+                                println!("{}", args[0]);
+
+                                Ok(Value::Nil)
+                            },
+
                             _ => unimplemented!("Only built ins are implemented"),
                         }
                     }
