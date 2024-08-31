@@ -1,0 +1,14 @@
+{
+  "tests/run/multi-line-strings.lox": [
+    "false\n36\n10\n78\n\n"
+  ],
+  "tests/run/multiple-statements-per-line.lox": [
+    "hello\ntrue\nfalse\nbar\n43\n"
+  ],
+  "tests/run/print.lox": [
+    "Hello, World!\n42\ntrue\n36\n"
+  ],
+  "tests/run/unicode.lox": [
+    "false\n11\n24\n20\n\n()\nnon-ascii: ॐ\n"
+  ]
+}

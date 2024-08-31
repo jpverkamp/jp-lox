@@ -187,7 +187,7 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
 
         // Try to match comments, from // to EOL
-        if self.source[self.byte_pos..].starts_with("//") {
+        if self.char_pos < self.chars.len() - 1 && self.chars[self.char_pos] == '/' && self.chars[self.char_pos + 1] == '/' {
             while self.char_pos < self.chars.len() && self.chars[self.char_pos] != '\n' {
                 self.char_pos += 1;
                 self.byte_pos += 1;
@@ -219,9 +219,11 @@ impl<'a> Iterator for Tokenizer<'a> {
                     self.line += 1
                 }
 
-                value.push(self.chars[self.char_pos]);
+                let c = self.chars[self.char_pos];
+                value.push(c);
+
+                self.byte_pos += c.len_utf8();
                 self.char_pos += 1;
-                self.byte_pos += 1;
             }
 
             // Consume closing "
@@ -283,7 +285,8 @@ impl<'a> Iterator for Tokenizer<'a> {
 
         // Read constant values
         for (lexeme, value) in Value::CONSTANT_VALUES.iter() {
-            if self.source[self.byte_pos..].starts_with(lexeme) {
+            let lexeme_chars = lexeme.chars().collect::<Vec<_>>();
+            if self.chars[self.char_pos..].starts_with(&lexeme_chars) {
                 let start = self.char_pos;
                 self.char_pos += lexeme.len();
                 self.byte_pos += lexeme.len();
@@ -330,11 +333,12 @@ impl<'a> Iterator for Tokenizer<'a> {
         // Match remaining keywords, this will include ones that are symbolic
         for keyword in Keyword::values() {
             let pattern = keyword.to_value();
+            let pattern_chars = pattern.chars().collect::<Vec<_>>();
 
-            if self.source[self.byte_pos..].starts_with(pattern) {
+            if self.chars[self.char_pos..].starts_with(&pattern_chars) {
                 let start = self.char_pos;
                 self.byte_pos += pattern.len();
-                self.char_pos += pattern.chars().count();
+                self.char_pos += pattern_chars.len();
                 let end = self.char_pos;
 
                 return Some(Token::Keyword(Span { line: self.line, start, end }, keyword));

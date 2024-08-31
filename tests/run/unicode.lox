@@ -1,0 +1,10 @@
+print false != false;
+
+print "11
+24
+20
+";
+
+print "(" + "" + ")";
+
+print "non-ascii: ॐ";
