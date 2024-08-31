@@ -40,6 +40,7 @@ enum Command {
         input: FileOrStdin,
     },
     /// Tokenize, parse, and evaluate the input file.
+    #[clap(aliases = &["run"])]
     Evaluate {
         /// Input lox file or - for stdin.
         input: FileOrStdin,
