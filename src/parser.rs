@@ -105,7 +105,7 @@ impl Parser<'_> {
                 break;
             }
 
-            let node = self.parse_statement()?;
+            let node = self.parse_declaration()?;
             span = span.merge(&node.span());
             nodes.push(node);
         }
@@ -113,12 +113,20 @@ impl Parser<'_> {
         Ok(AstNode::Program(span, nodes))
     }
 
+    fn parse_declaration(&mut self) -> Result<AstNode> {
+        log::debug!("parse_declaration");
+
+        match self.tokenizer.peek() {
+            Some(Token::Keyword(_, Keyword::Var)) => self.parse_var_statement(),
+            _ => self.parse_statement(),
+        }
+    }
+
     fn parse_statement(&mut self) -> Result<AstNode> {
         log::debug!("parse_statement");
 
         match self.tokenizer.peek() {
             Some(Token::Keyword(_, Keyword::Print)) => self.parse_print_statement(),
-            Some(Token::Keyword(_, Keyword::Var)) => self.parse_var_statement(),
             _ => self.parse_expression_statement(),
         }
     }
