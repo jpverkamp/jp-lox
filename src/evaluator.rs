@@ -64,7 +64,7 @@ impl Evaluate for AstNode {
     fn evaluate(&self, env: &mut impl Environment) -> Result<Value> {
         match self {
             AstNode::Literal(_, value) => Ok(value.clone()),
-            AstNode::Symbol(_, name) => {
+            AstNode::Symbol(span, name) => {
                 // Keywords become builtins; fall back to env; then error
                 if Keyword::try_from(name.as_str()).is_ok() {
                     return Ok(Value::Builtin(name.clone()));
@@ -72,7 +72,10 @@ impl Evaluate for AstNode {
 
                 match env.get(name) {
                     Some(value) => Ok(value),
-                    None => Err(anyhow!("Undefined variable '{}'", name)),
+                    None => {
+                        let line = span.line;
+                        Err(anyhow!("[line {line}] Undefined variable '{name}'"))
+                    },
                 }
             },
 
