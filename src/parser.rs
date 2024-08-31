@@ -18,6 +18,7 @@ pub enum AstNode {
     Symbol(Span, String),
     Group(Span, Vec<AstNode>),
     Application(Span, Box<AstNode>, Vec<AstNode>),
+    Declaration(Span, String, Box<AstNode>),
     Assignment(Span, String, Box<AstNode>),
     Program(Span, Vec<AstNode>),
 }
@@ -33,6 +34,9 @@ impl Display for AstNode {
         match self {
             AstNode::Literal(_, value) => write!(f, "{}", value),
             AstNode::Symbol(_, name) => write!(f, "{}", name),
+            AstNode::Declaration(_, name, value) => write!(f, "(var {} {})", name, value),
+            AstNode::Assignment(_, name, value) => write!(f, "(= {} {})", name, value),
+
             AstNode::Group(_, nodes) => {
                 write!(f, "(group")?;
                 for node in nodes {
@@ -48,11 +52,6 @@ impl Display for AstNode {
                     write!(f, " {}", arg)?;
                 }
                 write!(f, ")")?;
-
-                std::fmt::Result::Ok(())
-            }
-            AstNode::Assignment(_, name, value) => {
-                write!(f, "(var {} {})", name, value)?;
 
                 std::fmt::Result::Ok(())
             }
@@ -74,6 +73,7 @@ impl AstNode {
             | AstNode::Symbol(span, _)
             | AstNode::Group(span, _)
             | AstNode::Application(span, _, _)
+            | AstNode::Declaration(span, _, _)
             | AstNode::Assignment(span, _, _)
             | AstNode::Program(span, _) => *span,
         }
@@ -178,7 +178,7 @@ impl Parser<'_> {
             // End of expression, default to nil and return immediately
             Some(Token::Keyword(semispan, Keyword::Semicolon)) => {
                 let span = span.merge(&semispan);
-                Ok(AstNode::Assignment(span, name, Box::new(AstNode::Literal(span, Value::Nil))))
+                Ok(AstNode::Declaration(span, name, Box::new(AstNode::Literal(span, Value::Nil))))
             }
             // Equal, parse expression
             Some(Token::Keyword(_, Keyword::Equal)) => {
@@ -188,7 +188,7 @@ impl Parser<'_> {
                 let semicolon = self.consume_semicolon_or_eof()?;
                 let span = span.merge(&semicolon.span());
 
-                Ok(AstNode::Assignment(span, name, Box::new(expression)))
+                Ok(AstNode::Declaration(span, name, Box::new(expression)))
             }
             // Anything else is an error, split for better reporting
             Some(token) => {
@@ -205,7 +205,32 @@ impl Parser<'_> {
 
     fn parse_expression(&mut self) -> Result<AstNode> {
         log::debug!("parse_expression");
-        self.parse_equality()
+        self.parse_assignment()
+    }
+
+    fn parse_assignment(&mut self) -> Result<AstNode> {
+        let mut lhs = self.parse_equality()?;
+
+        if let Some(Token::Keyword(_, Keyword::Equal)) = self.tokenizer.peek() {
+            log::debug!("parse_assignment");
+
+            // The lhs has to be a symbol to assign to
+            // Evaluation will handle assignment to undefined variables
+            let name = if let AstNode::Symbol(_, name) = &lhs {
+                name.clone()
+            } else {
+                let line = lhs.span().line;
+                return Err(anyhow!("[line {}] Error at '=': Invalid assignment target.", line));
+            };
+
+            self.tokenizer.next();
+            let rhs = self.parse_assignment()?;
+            let span = lhs.span().merge(&rhs.span());
+
+            lhs = AstNode::Assignment(span, name, Box::new(rhs));
+        }
+
+        Ok(lhs)
     }
 
     fn parse_equality(&mut self) -> Result<AstNode> {

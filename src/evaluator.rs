@@ -189,7 +189,18 @@ impl Evaluate for AstNode {
                 }
             }
 
-            AstNode::Assignment(_, name, body) => {
+            AstNode::Declaration(_, name, body) => {
+                let value = body.evaluate(env)?;
+                env.set(name, value.clone());
+                Ok(value)
+            }
+
+            AstNode::Assignment(span, name, body) => {
+                if env.get(name).is_none() {
+                    let line = span.line;
+                    return Err(anyhow!("[line {line}] Undefined variable '{name}'"));                
+                }
+
                 let value = body.evaluate(env)?;
                 env.set(name, value.clone());
                 Ok(value)

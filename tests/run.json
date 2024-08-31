@@ -11,6 +11,9 @@
   "tests/run/unicode.lox": [
     "false\n11\n24\n20\n\n()\nnon-ascii: ॐ\n"
   ],
+  "tests/run/variable-as-expr.lox": [
+    "4\n2\n"
+  ],
   "tests/run/variable-uninit.lox": [
     "nil\n"
   ],
