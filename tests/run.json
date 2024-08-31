@@ -1,4 +1,10 @@
 {
+  "tests/run/block-shadowing.lox": [
+    "outer\ninner\ninner set\nouter\n"
+  ],
+  "tests/run/block.lox": [
+    "88\n88\n"
+  ],
   "tests/run/multi-line-strings.lox": [
     "false\n36\n10\n78\n\n"
   ],

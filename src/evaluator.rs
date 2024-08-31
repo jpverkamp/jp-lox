@@ -88,6 +88,19 @@ impl Evaluate for AstNode {
                 Ok(last)
             }
 
+            AstNode::Block(_, nodes) => {
+                env.enter();
+
+                let mut last = Value::Nil;
+                for node in nodes {
+                    last = node.evaluate(env)?;
+                }
+
+                env.exit();
+
+                Ok(last)
+            }
+
             AstNode::Application(span, func, args) => {
                 let func = match func.evaluate(env)? {
                     Value::Builtin(name) => {

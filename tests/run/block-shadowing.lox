@@ -1,0 +1,11 @@
+{
+    var foo = "outer";
+    print foo;
+    {
+        var foo = "inner";
+        print foo;
+        foo = "inner set";
+        print foo;
+    }
+    print foo;
+}

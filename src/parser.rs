@@ -16,10 +16,15 @@ pub struct Parser<'a> {
 pub enum AstNode {
     Literal(Span, Value),
     Symbol(Span, String),
-    Group(Span, Vec<AstNode>),
+    
+    Group(Span, Vec<AstNode>), // No new scope
+    Block(Span, Vec<AstNode>), // New scope
+
     Application(Span, Box<AstNode>, Vec<AstNode>),
-    Declaration(Span, String, Box<AstNode>),
-    Assignment(Span, String, Box<AstNode>),
+    
+    Declaration(Span, String, Box<AstNode>), // Creates new variables
+    Assignment(Span, String, Box<AstNode>),  // Sets values, error on undeclared
+    
     Program(Span, Vec<AstNode>),
 }
 
@@ -46,6 +51,23 @@ impl Display for AstNode {
 
                 std::fmt::Result::Ok(())
             }
+
+            AstNode::Block(_, nodes) => {
+                write!(f, "{{")?;
+                let mut first = true;
+                for node in nodes {
+                    if first {                    
+                        write!(f, "{}", node)?;
+                        first = false;
+                    } else {
+                        write!(f, " {}", node)?;
+                    }
+                }
+                write!(f, "}}")?;
+
+                std::fmt::Result::Ok(())
+            }
+
             AstNode::Application(_, func, args) => {
                 write!(f, "({}", func)?;
                 for arg in args {
@@ -55,6 +77,7 @@ impl Display for AstNode {
 
                 std::fmt::Result::Ok(())
             }
+
             AstNode::Program(_, nodes) => {
                 for node in nodes {
                     write!(f, "{}\n", node)?;
@@ -72,6 +95,7 @@ impl AstNode {
             AstNode::Literal(span, _)
             | AstNode::Symbol(span, _)
             | AstNode::Group(span, _)
+            | AstNode::Block(span, _)
             | AstNode::Application(span, _, _)
             | AstNode::Declaration(span, _, _)
             | AstNode::Assignment(span, _, _)
@@ -126,9 +150,31 @@ impl Parser<'_> {
         log::debug!("parse_statement");
 
         match self.tokenizer.peek() {
+            Some(Token::Keyword(_, Keyword::LeftBrace)) => self.parse_block(),
             Some(Token::Keyword(_, Keyword::Print)) => self.parse_print_statement(),
             _ => self.parse_expression_statement(),
         }
+    }
+
+    fn parse_block(&mut self) -> Result<AstNode> {
+        let left_brace = self.tokenizer.next().unwrap();
+        let span = left_brace.span();
+        log::debug!("parse_block @ {span:?}");
+
+        let mut nodes = vec![];
+        while let Some(token) = self.tokenizer.peek() {
+            if let Token::Keyword(_, Keyword::RightBrace) = token {
+                break;
+            }
+
+            let node = self.parse_declaration()?;
+            nodes.push(node);
+        }
+
+        let right_brace = self.tokenizer.next().unwrap();
+        let span = span.merge(&right_brace.span());
+
+        Ok(AstNode::Block(span, nodes))
     }
 
     fn parse_expression_statement(&mut self) -> Result<AstNode> {
