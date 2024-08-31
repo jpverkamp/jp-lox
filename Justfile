@@ -1,8 +1,8 @@
 build:
     cargo build
 
-test: build test-tokenizer test-parser test-evaluator
-update: build update-tokenizer update-parser update-evaluator
+test: build test-tokenizer test-parser test-evaluator test-run
+update: build update-tokenizer update-parser update-evaluator update-run
 
 test-tokenizer:
     testit \
@@ -24,6 +24,13 @@ test-evaluator:
         --files "tests/evaluator/*.lox" \
         --timeout 60 \
         --db tests/evaluator.json
+
+test-run:
+    testit \
+        --command "./target/debug/codecrafters-interpreter run -" \
+        --files "tests/run/*.lox" \
+        --timeout 60 \
+        --db tests/run.json
 
 update-tokenizer:
     testit \
@@ -47,4 +54,12 @@ update-evaluator:
         --files "tests/evaluator/*.lox" \
         --timeout 60 \
         --db tests/evaluator.json \
+        --save
+
+update-run:
+    testit \
+        --command "./target/debug/codecrafters-interpreter run -" \
+        --files "tests/run/*.lox" \
+        --timeout 60 \
+        --db tests/run.json \
         --save

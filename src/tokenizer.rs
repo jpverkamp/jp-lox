@@ -205,7 +205,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             self.byte_pos += 1;
 
             loop {
-                if self.char_pos >= self.chars.len() || self.chars[self.char_pos] == '\n' {
+                if self.char_pos >= self.chars.len() {
                     self.encountered_error = true;
                     eprintln!("[line {}] Error: Unterminated string.", self.line);
                     return self.next();
@@ -213,6 +213,10 @@ impl<'a> Iterator for Tokenizer<'a> {
 
                 if self.chars[self.char_pos] == '"' {
                     break;
+                }
+
+                if self.chars[self.char_pos] == '\n' {
+                    self.line += 1
                 }
 
                 value.push(self.chars[self.char_pos]);

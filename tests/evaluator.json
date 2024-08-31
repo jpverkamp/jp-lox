@@ -1,45 +1,15 @@
 {
-  "tests/evaluator/binary-expressions.lox": [
-    "3\n"
-  ],
-  "tests/evaluator/binary-minus-with-negation.lox": [
-    "7\n"
-  ],
-  "tests/evaluator/binary-minus.lox": [
-    "3\n"
-  ],
-  "tests/evaluator/binary-string-concat.lox": [
-    "hello world!\n"
-  ],
-  "tests/evaluator/comparison.lox": [
-    "true\n"
-  ],
-  "tests/evaluator/literal-boolean.lox": [
-    "true\n"
-  ],
-  "tests/evaluator/literal-number-1.lox": [
-    "10.4\n"
-  ],
-  "tests/evaluator/literal-number-2.lox": [
-    "10\n"
-  ],
-  "tests/evaluator/literal-string.lox": [
-    "hello world!\n"
-  ],
-  "tests/evaluator/print.lox": [
-    "Hello, World!\n42.0\ntrue\n36.0\n",
-    "Hello, World!\n42\ntrue\n36\nnil\n"
-  ],
-  "tests/evaluator/string-equality.lox": [
-    "true\n"
-  ],
-  "tests/evaluator/unary-minus.lox": [
-    "-5\n"
-  ],
-  "tests/evaluator/unary-not-falsy.lox": [
-    "true\n"
-  ],
-  "tests/evaluator/unary-not.lox": [
-    "false\n"
-  ]
+  "tests/evaluator/binary-expressions.lox": ["3\n"],
+  "tests/evaluator/binary-minus-with-negation.lox": ["7\n"],
+  "tests/evaluator/binary-minus.lox": ["3\n"],
+  "tests/evaluator/binary-string-concat.lox": ["hello world!\n"],
+  "tests/evaluator/comparison.lox": ["true\n"],
+  "tests/evaluator/literal-boolean.lox": ["true\n"],
+  "tests/evaluator/literal-number-1.lox": ["10.4\n"],
+  "tests/evaluator/literal-number-2.lox": ["10\n"],
+  "tests/evaluator/literal-string.lox": ["hello world!\n"],
+  "tests/evaluator/string-equality.lox": ["true\n"],
+  "tests/evaluator/unary-minus.lox": ["-5\n"],
+  "tests/evaluator/unary-not-falsy.lox": ["true\n"],
+  "tests/evaluator/unary-not.lox": ["false\n"]
 }

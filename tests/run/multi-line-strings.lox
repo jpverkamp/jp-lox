@@ -1,0 +1,7 @@
+// Apparently this is allowed now
+print true != true;
+
+print "36
+10
+78
+";
