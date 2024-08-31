@@ -40,8 +40,13 @@ enum Command {
         input: FileOrStdin,
     },
     /// Tokenize, parse, and evaluate the input file.
-    #[clap(aliases = &["run"])]
+    /// Print the last command's output (including nil)
     Evaluate {
+        /// Input lox file or - for stdin.
+        input: FileOrStdin,
+    },
+    /// Run the input file, do not print the last command's output.
+    Run {
         /// Input lox file or - for stdin.
         input: FileOrStdin,
     },
@@ -57,71 +62,82 @@ fn main() -> Result<()> {
         env_logger::init();
     }
 
-    match args.command {
-        Command::Tokenize { input } => {
-            let file_contents = input.contents()?;
-            let mut tokenizer = Tokenizer::new(&file_contents);
+    // ----- Shared filename / contents loading -----
 
-            for token in &mut tokenizer {
-                println!("{}", token.code_crafters_format());
-            }
+    let (file_name, file_contents) = match args.command {
+        Command::Tokenize { ref input }
+        | Command::Parse { ref input }
+        | Command::Evaluate { ref input }
+        | Command::Run { ref input } => (
+            if input.is_file() {
+                input.filename().to_string()
+            } else {
+                "stdin".to_string()
+            },
+            input.clone().contents()?
+        )
+    };
 
-            if tokenizer.encountered_error() {
-                std::process::exit(65);
-            }
+    // ----- Tokenizing -----
+
+    log::debug!("Tokenizing {}", file_name);
+    let mut tokenizer = Tokenizer::new(&file_contents);
+
+    if let Command::Tokenize { .. } = args.command {
+        for token in &mut tokenizer {
+            println!("{}", token.code_crafters_format());
         }
-        Command::Parse { input } => {
-            let file_contents = input.contents()?;
-            let tokenizer = Tokenizer::new(&file_contents);
-            let mut parser = Parser::from(tokenizer);
 
-            let ast = match parser.parse() {
-                Ok(ast) => ast,
-                Err(e) => {
-                    eprintln!("{}", e);
-                    std::process::exit(65);
-                }
-            };
-
-            if parser.encountered_tokenizer_error() {
-                std::process::exit(65);
-            }
-
-            println!("{ast}");
-        }
-        Command::Evaluate { input } => {
-            let file_contents = input.contents()?;
-            let tokenizer = Tokenizer::new(&file_contents);
-            let mut parser = Parser::from(tokenizer);
-
-            let ast = match parser.parse() {
-                Ok(ast) => ast,
-                Err(e) => {
-                    eprintln!("{}", e);
-                    std::process::exit(65);
-                }
-            };
-
-            if parser.encountered_tokenizer_error() {
-                std::process::exit(65);
-            }
-
-            let output = match ast.evaluate() {
-                Ok(value) => value,
-                Err(e) => {
-                    eprintln!("{}", e);
-                    std::process::exit(70);
-                }
-            };
-
-            // And now, for reasons... we *don't* want 10.0, we want 10
-            match output {
-                values::Value::Nil => {},
-                values::Value::Number(n) => println!("{}", n),
-                _ => println!("{output}"),
-            }
+        if tokenizer.encountered_error() {
+            std::process::exit(65);
+        } else {
+            return Ok(());
         }
     }
 
+    // ----- Parsing -----
+
+    log::debug!("Parsing...");
+    let mut parser = Parser::from(tokenizer);
+
+    let ast = match parser.parse() {
+        Ok(ast) => ast,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(65);
+        }
+    };
+
+    if parser.encountered_tokenizer_error() {
+        std::process::exit(65);
+    }
+
+    if let Command::Parse { .. } = args.command {
+        println!("{}", ast);
+        return Ok(());
+    }
+
+    // ----- Evaluating -----
+
+    let output = match ast.evaluate() {
+        Ok(value) => value,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(70);
+        }
+    };
+
+    // Eval prints the last command, run doesn't
+    // For *reasons* numbers should't print .0 here
+    if let Command::Evaluate { .. } = args.command {
+        match output {
+            values::Value::Number(n) => println!("{n}"),
+            _ => println!("{}", output),
+        }
+    } else if let Command::Run { .. } = args.command {
+        // Do nothing
+    }
+
+    // Success (so far)
     Ok(())
 }
