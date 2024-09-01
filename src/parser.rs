@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use crate::{
     span::Span,
-    tokenizer::{Keyword, Token, Tokenizer},
+    tokenizer::{Keyword, Token, Tokenizer, TokenizerError},
     values::Value,
 };
 use anyhow::{anyhow, Ok, Result};
@@ -16,15 +16,15 @@ pub struct Parser<'a> {
 pub enum AstNode {
     Literal(Span, Value),
     Symbol(Span, String),
-    
+
     Group(Span, Vec<AstNode>), // No new scope
     Block(Span, Vec<AstNode>), // New scope
 
     Application(Span, Box<AstNode>, Vec<AstNode>),
-    
+
     Declaration(Span, String, Box<AstNode>), // Creates new variables
     Assignment(Span, String, Box<AstNode>),  // Sets values, error on undeclared
-    
+
     Program(Span, Vec<AstNode>),
 }
 
@@ -56,7 +56,7 @@ impl Display for AstNode {
                 write!(f, "{{")?;
                 let mut first = true;
                 for node in nodes {
-                    if first {                    
+                    if first {
                         write!(f, "{}", node)?;
                         first = false;
                     } else {
@@ -180,7 +180,7 @@ impl Parser<'_> {
     fn parse_expression_statement(&mut self) -> Result<AstNode> {
         let expression = self.parse_expression()?;
 
-        // TODO: Should the span include this ;? 
+        // TODO: Should the span include this ;?
         // Currently I can't, since I can't set the expresion's span
         self.consume_semicolon_or_eof()?;
 
@@ -197,7 +197,6 @@ impl Parser<'_> {
 
         let semicolon = self.consume_semicolon_or_eof()?;
         let span = span.merge(&semicolon.span());
-
 
         Ok(AstNode::Application(
             span,
@@ -216,7 +215,11 @@ impl Parser<'_> {
             name
         } else {
             let line = self.line_number(span.start);
-            return Err(anyhow!("[line {}] Error at '{}': Expect identifier", line, var_keyword));
+            return Err(anyhow!(
+                "[line {}] Error at '{}': Expect identifier",
+                line,
+                var_keyword
+            ));
         };
 
         // We want to have '= expr ;' or ';'
@@ -224,7 +227,11 @@ impl Parser<'_> {
             // End of expression, default to nil and return immediately
             Some(Token::Keyword(semispan, Keyword::Semicolon)) => {
                 let span = span.merge(&semispan);
-                Ok(AstNode::Declaration(span, name, Box::new(AstNode::Literal(span, Value::Nil))))
+                Ok(AstNode::Declaration(
+                    span,
+                    name,
+                    Box::new(AstNode::Literal(span, Value::Nil)),
+                ))
             }
             // Equal, parse expression
             Some(Token::Keyword(_, Keyword::Equal)) => {
@@ -239,15 +246,22 @@ impl Parser<'_> {
             // Anything else is an error, split for better reporting
             Some(token) => {
                 let line = self.line_number(token.span().start);
-                Err(anyhow!("[line {}] Error at '{}': Expect '=' or ';'", line, var_keyword))
+                Err(anyhow!(
+                    "[line {}] Error at '{}': Expect '=' or ';'",
+                    line,
+                    var_keyword
+                ))
             }
             None => {
                 let line = self.line_number(span.start);
-                Err(anyhow!("[line {}] Error at '{}': Expect '=' or ';'", line, var_keyword))
+                Err(anyhow!(
+                    "[line {}] Error at '{}': Expect '=' or ';'",
+                    line,
+                    var_keyword
+                ))
             }
         }
     }
-
 
     fn parse_expression(&mut self) -> Result<AstNode> {
         log::debug!("parse_expression");
@@ -266,7 +280,10 @@ impl Parser<'_> {
                 name.clone()
             } else {
                 let line = lhs.span().line;
-                return Err(anyhow!("[line {}] Error at '=': Invalid assignment target.", line));
+                return Err(anyhow!(
+                    "[line {}] Error at '=': Invalid assignment target.",
+                    line
+                ));
             };
 
             self.tokenizer.next();
@@ -398,9 +415,7 @@ impl Parser<'_> {
                     }
                 }
                 Token::EOF => Err(anyhow!("Error at EOF: Expect expression")),
-                Token::Identifier(span, id) => {
-                    Ok(AstNode::Symbol(span, id))
-                }
+                Token::Identifier(span, id) => Ok(AstNode::Symbol(span, id)),
                 Token::Keyword(span, keyword) => {
                     let line = self.line_number(span.start);
                     Err(anyhow!(
@@ -418,13 +433,9 @@ impl Parser<'_> {
 
     fn consume_semicolon_or_eof(&mut self) -> Result<Token> {
         match self.tokenizer.peek() {
-            Some(Token::Keyword(_, Keyword::Semicolon)) => {
-                Ok(self.tokenizer.next().unwrap())
-            }
-            Some(Token::EOF) => {
-                Ok(Token::EOF)
-            }
-            
+            Some(Token::Keyword(_, Keyword::Semicolon)) => Ok(self.tokenizer.next().unwrap()),
+            Some(Token::EOF) => Ok(Token::EOF),
+
             Some(token) => {
                 let line = token.span().line;
                 Err(anyhow!("[line {}] Error: Expect ';'", line))
@@ -440,7 +451,11 @@ impl Parser<'_> {
         self.tokenizer.source[..byte_pos].lines().count()
     }
 
-    pub fn encountered_tokenizer_error(&self) -> bool {
-        self.tokenizer.encountered_error()
+    pub fn tokenizer_had_errors(&self) -> bool {
+        self.tokenizer.had_errors()
+    }
+
+    pub fn tokenizer_iter_errors(&self) -> impl Iterator<Item = &TokenizerError> {
+        self.tokenizer.iter_errors()
     }
 }

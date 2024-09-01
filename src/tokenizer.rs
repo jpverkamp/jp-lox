@@ -1,5 +1,6 @@
 use convert_case::{Case, Casing};
 use derive_more::Display;
+use thiserror::Error;
 
 use crate::const_enum;
 use crate::span::Span;
@@ -17,6 +18,15 @@ pub enum Token {
 
     #[display("{}", _1)]
     Identifier(Span, String),
+}
+
+#[derive(Clone, Debug, Error)]
+pub enum TokenizerError {
+    #[error("[line {}] Unexpected character: {}", .0.line, .1)]
+    UnexpectedCharacter(Span, char),
+
+    #[error("[line {}] Unterminated string", .0.line)]
+    UnterminatedString(Span),
 }
 
 // Code crafters requires a very specific output format, implement it here
@@ -125,8 +135,8 @@ pub struct Tokenizer<'a> {
     // Flag that the iterator has already emitted EOF, so should not iterate any more
     emitted_eof: bool,
 
-    // Flag that we encountered and emitted at least one error
-    encountered_error: bool,
+    // Collect tokenizer errors this tokenizer has encountered.
+    errors: Vec<TokenizerError>,
 
     // The currently peeked token
     peeked: Option<Token>,
@@ -144,7 +154,7 @@ impl<'a> Tokenizer<'a> {
             line: 1,
 
             emitted_eof: false,
-            encountered_error: false,
+            errors: Vec::new(),
 
             peeked: None,
         }
@@ -152,8 +162,12 @@ impl<'a> Tokenizer<'a> {
 }
 
 impl Tokenizer<'_> {
-    pub fn encountered_error(&self) -> bool {
-        self.encountered_error
+    pub fn had_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn iter_errors(&self) -> impl Iterator<Item = &TokenizerError> {
+        self.errors.iter()
     }
 
     pub fn peek(&mut self) -> Option<&Token> {
@@ -190,7 +204,10 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
 
         // Try to match comments, from // to EOL
-        if self.char_pos < self.chars.len() - 1 && self.chars[self.char_pos] == '/' && self.chars[self.char_pos + 1] == '/' {
+        if self.char_pos < self.chars.len() - 1
+            && self.chars[self.char_pos] == '/'
+            && self.chars[self.char_pos + 1] == '/'
+        {
             log::debug!("Matching comment");
 
             while self.char_pos < self.chars.len() && self.chars[self.char_pos] != '\n' {
@@ -213,8 +230,13 @@ impl<'a> Iterator for Tokenizer<'a> {
 
             loop {
                 if self.char_pos >= self.chars.len() {
-                    self.encountered_error = true;
-                    eprintln!("[line {}] Error: Unterminated string.", self.line);
+                    let error_span = Span {
+                        line: self.line,
+                        start,
+                        end: self.char_pos,
+                    };
+                    self.errors
+                        .push(TokenizerError::UnterminatedString(error_span));
                     return self.next();
                 }
 
@@ -239,7 +261,11 @@ impl<'a> Iterator for Tokenizer<'a> {
             let end = self.char_pos;
 
             return Some(Token::Literal(
-                Span { line: self.line, start, end },
+                Span {
+                    line: self.line,
+                    start,
+                    end,
+                },
                 format!("\"{value}\""),
                 Value::String(value),
             ));
@@ -286,7 +312,11 @@ impl<'a> Iterator for Tokenizer<'a> {
             let end = self.char_pos;
 
             return Some(Token::Literal(
-                Span { line: self.line, start, end },
+                Span {
+                    line: self.line,
+                    start,
+                    end,
+                },
                 lexeme,
                 Value::Number(value),
             ));
@@ -303,7 +333,11 @@ impl<'a> Iterator for Tokenizer<'a> {
                 self.byte_pos += lexeme.len();
                 let end = self.char_pos;
                 return Some(Token::Literal(
-                    Span { line: self.line, start, end },
+                    Span {
+                        line: self.line,
+                        start,
+                        end,
+                    },
                     lexeme.to_string(),
                     value.clone(),
                 ));
@@ -337,9 +371,23 @@ impl<'a> Iterator for Tokenizer<'a> {
             // Check if it's actually a keyword
             // This is called 'maximal munch', so superduper doesn't get parsed as <super><duper>
             if let Ok(keyword) = Keyword::try_from(value.as_str()) {
-                return Some(Token::Keyword(Span { line: self.line, start, end }, keyword));
+                return Some(Token::Keyword(
+                    Span {
+                        line: self.line,
+                        start,
+                        end,
+                    },
+                    keyword,
+                ));
             } else {
-                return Some(Token::Identifier(Span { line: self.line, start, end }, value));
+                return Some(Token::Identifier(
+                    Span {
+                        line: self.line,
+                        start,
+                        end,
+                    },
+                    value,
+                ));
             }
         }
 
@@ -356,7 +404,14 @@ impl<'a> Iterator for Tokenizer<'a> {
                 self.char_pos += pattern_chars.len();
                 let end = self.char_pos;
 
-                return Some(Token::Keyword(Span { line: self.line, start, end }, keyword));
+                return Some(Token::Keyword(
+                    Span {
+                        line: self.line,
+                        start,
+                        end,
+                    },
+                    keyword,
+                ));
             }
         }
 
@@ -375,8 +430,14 @@ impl<'a> Iterator for Tokenizer<'a> {
         }
 
         // Anything else should emit an error and continue as best we can
-        self.encountered_error = true;
-        eprintln!("[line {}] Error: Unexpected character: {}", self.line, c);
+        self.errors.push(TokenizerError::UnexpectedCharacter(
+            Span {
+                line: self.line,
+                start: self.char_pos,
+                end: self.char_pos,
+            },
+            c,
+        ));
         self.next()
     }
 }

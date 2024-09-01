@@ -1,6 +1,6 @@
-use crate::{parser::AstNode, tokenizer::Keyword};
-use crate::values::Value;
 use crate::environment::Environment;
+use crate::values::Value;
+use crate::{parser::AstNode, tokenizer::Keyword};
 
 use anyhow::{anyhow, Result};
 
@@ -22,7 +22,7 @@ macro_rules! as_number {
     ($expr:expr) => {
         match $expr {
             Value::Number(n) => n,
-            _ => return Err(anyhow!("Operands must be numbers."))
+            _ => return Err(anyhow!("Operands must be numbers.")),
         }
     };
 }
@@ -75,9 +75,9 @@ impl Evaluate for AstNode {
                     None => {
                         let line = span.line;
                         Err(anyhow!("[line {line}] Undefined variable '{name}'"))
-                    },
+                    }
                 }
-            },
+            }
 
             AstNode::Program(_, nodes) | AstNode::Group(_, nodes) => {
                 let mut last = Value::Nil;
@@ -139,7 +139,7 @@ impl Evaluate for AstNode {
                                     if let Value::Number(v) = args[0] {
                                         Ok(Value::Number(-v))
                                     } else {
-                                        Err(anyhow!{"Operand must be a number."})
+                                        Err(anyhow! {"Operand must be a number."})
                                     }
                                 } else {
                                     let a = as_number!(args[0]);
@@ -198,7 +198,7 @@ impl Evaluate for AstNode {
 
                 match func(arg_values) {
                     Ok(value) => Ok(value),
-                    Err(e) => Err(anyhow!("[line {}] {e}", span.line))
+                    Err(e) => Err(anyhow!("[line {}] {e}", span.line)),
                 }
             }
 
@@ -211,7 +211,7 @@ impl Evaluate for AstNode {
             AstNode::Assignment(span, name, body) => {
                 if env.get(name).is_none() {
                     let line = span.line;
-                    return Err(anyhow!("[line {line}] Undefined variable '{name}'"));                
+                    return Err(anyhow!("[line {line}] Undefined variable '{name}'"));
                 }
 
                 let value = body.evaluate(env)?;

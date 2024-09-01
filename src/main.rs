@@ -76,8 +76,8 @@ fn main() -> Result<()> {
             } else {
                 "stdin".to_string()
             },
-            input.clone().contents()?
-        )
+            input.clone().contents()?,
+        ),
     };
 
     // ----- Tokenizing -----
@@ -90,11 +90,14 @@ fn main() -> Result<()> {
             println!("{}", token.code_crafters_format());
         }
 
-        if tokenizer.encountered_error() {
+        if tokenizer.had_errors() {
+            for error in tokenizer.iter_errors() {
+                eprintln!("{}", error);
+            }
             std::process::exit(65);
-        } else {
-            return Ok(());
         }
+
+        return Ok(());
     }
 
     // ----- Parsing -----
@@ -110,9 +113,13 @@ fn main() -> Result<()> {
         }
     };
 
-    if parser.encountered_tokenizer_error() {
+    if parser.tokenizer_had_errors() {
+        for error in parser.tokenizer_iter_errors() {
+            eprintln!("{}", error);
+        }
         std::process::exit(65);
     }
+
 
     if let Command::Parse { .. } = args.command {
         println!("{}", ast);

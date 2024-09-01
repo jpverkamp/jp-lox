@@ -13,7 +13,9 @@ pub struct EnvironmentStack {
 
 impl EnvironmentStack {
     pub fn new() -> Self {
-        Self { stack: vec![vec![]] }
+        Self {
+            stack: vec![vec![]],
+        }
     }
 }
 
@@ -31,7 +33,10 @@ impl Environment for EnvironmentStack {
     }
 
     fn set(&mut self, key: &str, value: Value) {
-        self.stack.last_mut().unwrap().push((key.to_string(), value));
+        self.stack
+            .last_mut()
+            .unwrap()
+            .push((key.to_string(), value));
     }
 
     fn enter(&mut self) {
