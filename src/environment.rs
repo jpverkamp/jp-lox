@@ -1,17 +1,17 @@
 use crate::values::Value;
 
-pub trait Environment {
-    fn get(&self, key: &str) -> Option<Value>;
-    fn set(&mut self, key: &str, value: Value);
+pub trait Environment<T> {
+    fn get(&self, key: &str) -> Option<T>;
+    fn set(&mut self, key: &str, value: T);
     fn enter(&mut self);
     fn exit(&mut self);
 }
 
-pub struct EnvironmentStack {
-    stack: Vec<Vec<(String, Value)>>,
+pub struct EnvironmentStack<T> {
+    stack: Vec<Vec<(String, T)>>,
 }
 
-impl EnvironmentStack {
+impl<T> EnvironmentStack<T> {
     pub fn new() -> Self {
         Self {
             stack: vec![vec![]],
@@ -19,8 +19,8 @@ impl EnvironmentStack {
     }
 }
 
-impl Environment for EnvironmentStack {
-    fn get(&self, key: &str) -> Option<Value> {
+impl<T: Clone> Environment<T> for EnvironmentStack<T> {
+    fn get(&self, key: &str) -> Option<T> {
         for frame in self.stack.iter().rev() {
             for (k, v) in frame.iter().rev() {
                 if k == key {
@@ -32,7 +32,7 @@ impl Environment for EnvironmentStack {
         None
     }
 
-    fn set(&mut self, key: &str, value: Value) {
+    fn set(&mut self, key: &str, value: T) {
         self.stack
             .last_mut()
             .unwrap()

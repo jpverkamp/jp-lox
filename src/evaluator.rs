@@ -5,7 +5,7 @@ use crate::{parser::AstNode, tokenizer::Keyword};
 use anyhow::{anyhow, Result};
 
 pub trait Evaluate {
-    fn evaluate(&self, env: &mut impl Environment) -> Result<Value>;
+    fn evaluate(&self, env: &mut impl Environment<Value>) -> Result<Value>;
 }
 
 macro_rules! assert_arity {
@@ -61,7 +61,7 @@ macro_rules! comparison_binop {
 }
 
 impl Evaluate for AstNode {
-    fn evaluate(&self, env: &mut impl Environment) -> Result<Value> {
+    fn evaluate(&self, env: &mut impl Environment<Value>) -> Result<Value> {
         match self {
             AstNode::Literal(_, value) => Ok(value.clone()),
             AstNode::Symbol(span, name) => {
