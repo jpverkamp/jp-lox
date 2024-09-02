@@ -128,6 +128,7 @@ fn main() -> Result<()> {
 
     // ----- Evaluating -----
 
+    if let Command::Evaluate { .. } = args.command {
     let mut env = EnvironmentStack::new();
     let output = match ast.evaluate(&mut env) {
         Ok(value) => value,
@@ -146,6 +147,8 @@ fn main() -> Result<()> {
         }
     } else if let Command::Run { .. } = args.command {
         // Do nothing
+        }
+    }
     }
 
     // Success (so far)
