@@ -1,5 +1,3 @@
-use crate::values::Value;
-
 pub trait Environment<T> {
     fn get(&self, key: &str) -> Option<T>;
     fn set(&mut self, key: &str, value: T);

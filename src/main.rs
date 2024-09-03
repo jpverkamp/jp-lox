@@ -5,6 +5,7 @@ use clap::{Parser as ClapParser, Subcommand};
 use clap_stdin::FileOrStdin;
 use env_logger;
 
+mod builtins;
 mod const_enum;
 mod environment;
 mod evaluator;
@@ -61,7 +62,7 @@ fn main() -> Result<()> {
 
     // ----- Shared filename / contents loading -----
 
-    let (source) = if args.input.is_none() {
+    let source = if args.input.is_none() {
         let name = "<stdin>".to_string();
         let mut contents = String::new();
         std::io::stdin().read_to_string(&mut contents)?;
@@ -69,8 +70,8 @@ fn main() -> Result<()> {
     } else {
         let input = args.input.unwrap();
         let name = if input.is_file() {
-                input.filename().to_string()
-            } else {
+            input.filename().to_string()
+        } else {
             "<stdin>".to_string()
         };
         let contents = input.contents()?;
@@ -84,7 +85,7 @@ fn main() -> Result<()> {
 
     if let Command::Tokenize = args.command {
         for token in &mut tokenizer {
-            println!("{:?}", token);
+            println!("{}", token.code_crafters_format());
         }
 
         if tokenizer.had_errors() {
@@ -126,26 +127,26 @@ fn main() -> Result<()> {
 
     match args.command {
         Command::Evaluate | Command::Run => {
-    let mut env = EnvironmentStack::new();
-    let output = match ast.evaluate(&mut env) {
-        Ok(value) => value,
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(70);
-        }
-    };
+            let mut env = EnvironmentStack::new();
+            let output = match ast.evaluate(&mut env) {
+                Ok(value) => value,
+                Err(e) => {
+                    eprintln!("{}", e);
+                    std::process::exit(70);
+                }
+            };
 
-    // Eval prints the last command, run doesn't
-    // For *reasons* numbers should't print .0 here
+            // Eval prints the last command, run doesn't
+            // For *reasons* numbers should't print .0 here
             if let Command::Evaluate = args.command {
-        match output {
-            values::Value::Number(n) => println!("{n}"),
-            _ => println!("{}", output),
-        }
+                match output {
+                    values::Value::Number(n) => println!("{n}"),
+                    _ => println!("{}", output),
+                }
             } else if let Command::Run = args.command {
-        // Do nothing
+                // Do nothing
+            }
         }
-    }
         _ => {}
     }
 

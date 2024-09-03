@@ -78,6 +78,7 @@ impl Token {
 // Define keywords which are based on strings
 const_enum! {
     pub Keyword as &str {
+        // Match these first to avoid partial matches (ex == vs =)
         EqualEqual => "==",
         BangEqual => "!=",
         LessEqual => "<=",
